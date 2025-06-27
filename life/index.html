@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Life Sim Pro</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: linear-gradient(to bottom right, #dbeafe 10%, #f0fff4 90%); margin: 0; min-height: 100vh;}
+    .container { max-width: 760px; margin: 2em auto; background: #fff; padding: 2.4em 2.2em 1.2em 2.2em; border-radius: 2.3em; box-shadow: 0 4px 24px #a5b4fc44;}
+    h1, h2 { color: #6366f1; }
+    .section { margin-bottom: 1em; border-bottom: 1px solid #e0e7ff; padding-bottom: 0.5em;}
+    .subsection { margin-bottom: 0.7em; }
+    .stat-bar { height: 13px; border-radius: 8px; background: #e0e7ff; margin: 0.15em 0 0.48em 0; position: relative;}
+    .stat-bar-inner { height: 100%; border-radius: 8px; background: linear-gradient(90deg,#6366f1,#60a5fa); transition: width 0.3s;}
+    .stat-label { font-size: 1.11em; margin-right: 0.7em; font-weight: bold;}
+    .event-log { height: 150px; overflow-y: auto; background: #f3f4f6; border-radius: 1em; padding: 0.92em 1.2em; margin-top: 1em; font-size: 1em;}
+    .event-icon { font-size: 1.18em; margin-right:0.32em;}
+    .neutral { color: #64748b;}
+    .good { color: #22c55e;}
+    .bad { color: #dc2626;}
+    .special { color: #a21caf;}
+    .btn {padding:0.7em 1.38em; border-radius:1.1em; border:none; font-weight:bold; margin:0.22em 0.12em 0.48em 0.12em; background:#dbeafe; cursor:pointer; transition:background 0.18s;}
+    .btn:hover { background: #6366f1; color: white; }
+    #gameOverMsg { margin-top: 1em; color: #dc2626; font-weight: bold; font-size: 1.18em; text-align: center;}
+    .relationships, .family {margin-left:1em;}
+    .minigame-box { background:#f9fafb; border:1px solid #6366f1; border-radius:1.2em; padding:1em; margin:1.25em 0;}
+    .hidden { display:none; }
+    .timeline-panel {background:#eef2ff; border-radius:1em; padding:0.8em 1.2em 0.5em 1.2em; margin-bottom:1em;}
+    .timeline-panel strong {color:#818cf8;}
+    footer { text-align:center;}
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>Life Sim Pro</h1>
+  <div id="customSection"></div>
+  <div id="playerStats"></div>
+  <div id="familySection"></div>
+  <div id="relationshipsSection"></div>
+  <div id="timelinePanel"></div>
+  <div id="actionsPanel"></div>
+  <div id="minigameSection"></div>
+  <div id="eventLog" class="event-log"></div>
+  <div id="gameOverMsg"></div>
+  <button id="restartBtn" style="display:none;">Restart</button>
+  <footer>
+    <p style="font-size:12px;color:gray;margin-top:2em">&copy; <span id="year"></span> Life Sim Pro. <a href="https://f614.short.gy/Code">Try a new GPT!</a></p>
+  </footer>
+</div>
+<script>
+document.getElementById('year').textContent = new Date().getFullYear();
+
+let player, eventLog, turn, gameOver, minigame, timeline;
+const STAGES = [
+  {label:"Baby", min:0, max:3, actions:["Be Cute", "Ask Parents"], stats:{maxHealth:55}},
+  {label:"Child", min:4, max:12, actions:["Study","Play","Make Friend", "Ask Parents"], stats:{maxHealth:65}},
+  {label:"Teen", min:13, max:17, actions:["Study","Hang Out","Hobby","Ask Parents","Crush","Help Family","Rivalry"], stats:{maxHealth:88}},
+  {label:"Young Adult", min:18, max:39, actions:["Work","Study","Socialize","Find Partner","Hobby","Exercise","Rock Paper Scissors"], stats:{maxHealth:108}},
+  {label:"Adult", min:40, max:64, actions:["Work","Socialize","Hobby","Family Time","Exercise"], stats:{maxHealth:108}},
+  {label:"Senior", min:65, max:110, actions:["Relax","Family Time","Reminisce"], stats:{maxHealth:80}},
+];
+
+function startCustom() {
+  document.getElementById("customSection").innerHTML = `
+    <h2>Customize Your Character</h2>
+    <form id="customForm">
+      <label>Name: <input type="text" id="customName" maxlength="16" value="Alex" required></label><br>
+      <label>Gender: 
+        <select id="customGender">
+          <option>Female</option>
+          <option>Male</option>
+          <option>Nonbinary</option>
+        </select>
+      </label><br>
+      <label>Starter Trait: 
+        <select id="customTrait">
+          <option value="smart">Smart (+Intelligence)</option>
+          <option value="social">Friendly (+Happiness, Social)</option>
+          <option value="healthy">Healthy (+Health)</option>
+        </select>
+      </label><br><br>
+      <button class="btn" type="submit">Begin Life!</button>
+    </form>
+  `;
+  document.getElementById("customForm").onsubmit = e => {
+    e.preventDefault();
+    const name = document.getElementById("customName").value.trim() || "Alex";
+    const gender = document.getElementById("customGender").value;
+    const trait = document.getElementById("customTrait").value;
+    beginLife(name, gender, trait);
+  }
+}
+
+function beginLife(name, gender, trait) {
+  player = {
+    name, gender, age:0, stage:"Baby", alive:true,
+    stats:{health:46,happiness:38,intelligence:5,social:7},
+    money:0, job:null, jobLevel:0,
+    spouse:null, spouseBond:0, children:[],
+    relationships:[],
+    history:[],
+    parents:[
+      makeParent("Mother"), makeParent("Father")
+    ],
+    minigameCooldown:0
+  };
+  if(trait==="smart") player.stats.intelligence+=4;
+  if(trait==="social") {player.stats.happiness+=6; player.stats.social+=5;}
+  if(trait==="healthy") player.stats.health+=13;
+  eventLog = [`<span class="neutral"><span class="event-icon">👶</span> Welcome to the world, ${name}!</span>`];
+  timeline = [{event:"Born",age:0,icon:"👶"}];
+  turn = 1; gameOver = false;
+  document.getElementById("customSection").innerHTML = "";
+  updateUI();
+}
+
+function makeParent(role) {
+  const momNames = ["Emma","Olivia","Sophia","Isabella","Ava","Mia","Emily"];
+  const dadNames = ["Liam","Noah","William","James","Logan","Ethan","Benjamin"];
+  return {
+    name: role==="Mother"
+      ? momNames[Math.floor(Math.random()*momNames.length)]
+      : dadNames[Math.floor(Math.random()*dadNames.length)],
+    age: role==="Mother"?27:29,
+    alive:true, bond:69, role,
+    mood:"neutral", money:120, giftGiven:0
+  }
+}
+
+function addLog(msg, type="neutral", icon="") {
+  let ico = icon ? `<span class="event-icon">${icon}</span>` : "";
+  eventLog.push(`<span class="${type}">${ico}${msg}</span>`);
+  updateEventLog();
+}
+function timelineEvent(msg, icon, color) {
+  timeline.push({event:msg,age:player.age,icon:icon,color:color||"#6366f1"});
+  if(timeline.length>30) timeline = timeline.slice(-30);
+}
+function currentStage() {
+  return STAGES.find(s => player.age>=s.min && player.age<=s.max);
+}
+
+// ------------ Actions -------------
+function handleAction(action) {
+  if(gameOver || !player.alive) return;
+  let stg = currentStage(), msg = "", icon = "🕹️";
+  switch(action) {
+    case "Ask Parents": showParentAsk(); return;
+    case "Be Cute":
+      player.stats.happiness+=2; 
+      player.parents.forEach(p=>p.bond+=2); 
+      msg="Giggled and parents doted on you!"; icon="👶"; timelineEvent("Made family smile","🍼"); break;
+    case "Play":
+      player.stats.happiness+=3; player.stats.health+=1; 
+      if(Math.random()<0.18) makeFriend("kid");
+      msg="Played games. Happiness +3."; icon="🧸"; break;
+    case "Study":
+      player.stats.intelligence+=2; player.stats.happiness-=1;
+      if(minigameReady()) showMinigame("trivia","Mini-Quiz: What is 7+5?");
+      msg="Studied for school. Intelligence +2."; icon="📚"; break;
+    case "Make Friend":
+      makeFriend("kid"); msg="Tried to make a new friend."; icon="🤝"; break;
+    case "Hang Out":
+      player.stats.happiness+=2; player.stats.social+=2;
+      msg="Hung out with friends. Happiness +2."; icon="🎧"; break;
+    case "Hobby":
+      player.stats.happiness+=2; player.stats.intelligence+=1;
+      msg="Practiced a hobby. Happiness +2, Intelligence +1."; icon="🎨"; break;
+    case "Crush":
+      if(Math.random()<0.26) makeRelationship("crush");
+      msg="Texted your crush. Heart skipped a beat."; icon="💌"; break;
+    case "Help Family":
+      player.stats.happiness+=2;
+      player.parents.forEach(p=>p.bond+=3);
+      msg="Helped your family. Bond +3."; icon="🫂"; break;
+    case "Rivalry":
+      if(Math.random()<0.4) makeRelationship("rival");
+      msg="Stood up to your rival!"; icon="⚡"; break;
+    case "Work":
+      player.money+=45+player.jobLevel*13;
+      player.stats.happiness-=1; player.stats.health-=3;
+      msg="Worked hard. +$"+(45+player.jobLevel*13); icon="💼"; break;
+    case "Socialize":
+      player.stats.social+=3; player.stats.happiness+=2;
+      msg="Went to a social event. Social +3, Happiness +2."; icon="🍻"; break;
+    case "Exercise":
+      player.stats.health+=5; player.stats.happiness+=1; player.stats.social+=1;
+      msg="Went for exercise. Health +5."; icon="🏃"; break;
+    case "Family Time":
+      player.stats.happiness+=4; player.parents.forEach(p=>p.bond+=2);
+      msg="Spent time with family. Happiness +4, Bond +2."; icon="🏡"; break;
+    case "Find Partner":
+      if(Math.random()<0.41&&!player.spouse) {makeRelationship("spouse"); msg="You met a future spouse!"; icon="💍";}
+      else { msg="Socialized, but no soulmate (yet)."; icon="💑"; }
+      break;
+    case "Rock Paper Scissors":
+      showMinigame("rps","Rock, Paper, Scissors with a friend!"); return;
+    case "Relax":
+      player.stats.happiness+=2; player.stats.health+=3;
+      msg="Relaxed and reminisced."; icon="🧘"; break;
+    case "Reminisce":
+      msg="Remembered a beautiful life moment."; icon="🌅"; break;
+  }
+  // Minigame for study (trivia)
+  if(action==="Study"&&minigame&&minigame.type==="trivia") return;
+  // Random life event (rare/special milestone chance)
+  let rareEvent = Math.random()<0.07;
+  if(rareEvent) processSpecialEvent();
+  else if(Math.random()<0.13+Math.min(0.18,player.age*0.002)) processRandomEvent();
+  else addLog(msg,"neutral",icon);
+  // Aging up
+  if((turn+1)%10===0) {
+    player.age+=1; 
+    // Parents age, possibility of death
+    player.parents.forEach(p=>{
+      if(p.alive){p.age+=1;
+        // Mood randomizer
+        p.mood = ["happy","neutral","tired","proud","worried"][Math.floor(Math.random()*5)];
+        if(p.age>67&&Math.random()<0.13){p.alive=false;addLog(`${p.name} has passed away.`,"bad","🪦");timelineEvent(`${p.name} passed away`,"🪦","#dc2626");}
+      }
+    });
+    // Spouse aging
+    if(player.spouse&&player.spouse.age){player.spouse.age+=1;if(player.spouse.age>77&&Math.random()<0.18){addLog(`${player.spouse.name} has passed away.`,"bad","💔");player.spouse=null;}}
+    // Children grow up
+    player.children.forEach(child=>{
+      child.age+=1;
+      if(child.age===18){addLog(`${child.name} has grown up and left home.`,"neutral","🎓");timelineEvent(`${child.name} grew up`,"🎓");}
+    });
+    addLog(`Birthday! You are now ${player.age}.`,"special","🎂");
+    timelineEvent("Birthday!","🎂");
+  }
+  // Game Over
+  let over=null;
+  if(player.stats.health<=0) over="You died from poor health!";
+  else if(player.stats.happiness<=-10) over="You gave up hope...";
+  else if(player.age>99) over="You lived a full life!";
+  if(over){gameOver=true;addLog(over,"bad","☠️");showLifeSummary();updateUI();return;}
+  turn++; updateUI();
+}
+
+// -------- Parent Ask Panel ----------
+function showParentAsk() {
+  let html = `<div class="minigame-box"><h2>Ask Parents</h2>
+    <p>What do you want to ask?</p>
+    <button class="btn" onclick="askParent('money')">Ask for Money</button>
+    <button class="btn" onclick="askParent('gift')">Ask for Gift</button>
+    <button class="btn" onclick="askParent('advice')">Ask for Advice</button>
+    <button class="btn" onclick="askParent('permission')">Ask for Permission (to go out)</button>
+    <button class="btn" onclick="closeMinigame()">Cancel</button>
+    </div>`;
+  document.getElementById("minigameSection").innerHTML = html;
+}
+function askParent(type) {
+  let livingParents = player.parents.filter(p=>p.alive);
+  if(!livingParents.length) {addLog("No parent is alive to ask.","bad","💔");closeMinigame();return;}
+  let chosen = livingParents[Math.floor(Math.random()*livingParents.length)];
+  let mood = chosen.mood || "neutral";
+  let bondFactor = chosen.bond + (mood==="happy"?8:mood==="tired"?-5:0);
+  let luck = Math.random()*100 + bondFactor + (type==="money"?0:8);
+  if(type==="money"){
+    if(luck>92&&chosen.money>=30){player.money+=30;chosen.money-=30;addLog(`${chosen.name} is feeling generous! You get $30!`,"good","💰");timelineEvent("Got $30 from parents","💰","#16a34a");}
+    else if(luck>75&&chosen.money>=12){player.money+=12;chosen.money-=12;addLog(`${chosen.name} gave you $12.`,"good","💵");}
+    else{addLog(`${chosen.name} says: "Sorry, not now."`,"neutral","🤷");}
+  }
+  if(type==="gift"){
+    showMinigame("guessgift",`Guess your parent's surprise gift!`);
+    return;
+  }
+  if(type==="advice"){
+    if(luck>65){addLog(`${chosen.name} gave wise advice. Intelligence +2.`,"good","🧠");player.stats.intelligence+=2;}
+    else{addLog(`${chosen.name} listened, but had no advice this time.`,"neutral","💬");}
+  }
+  if(type==="permission"){
+    if(luck>88){addLog(`${chosen.name} says: "Go have fun, be safe!" Social +3`,"good","🚦");player.stats.social+=3;}
+    else{addLog(`${chosen.name} says: "Not tonight, sorry."`,"neutral","🚫");}
+  }
+  closeMinigame();
+}
+function closeMinigame() {document.getElementById("minigameSection").innerHTML = ""; minigame=null;}
+
+// -------- Minigames --------
+function minigameReady() { return !minigame; }
+function showMinigame(type,text) {
+  minigame = {type,active:true};
+  if(type==="trivia"){
+    let a = Math.floor(Math.random()*9+5), b = Math.floor(Math.random()*10);
+    let answer = a + b;
+    document.getElementById("minigameSection").innerHTML = `
+      <div class="minigame-box"><h2>Mini-Quiz</h2>
+      <div>${text||""} What is ${a} + ${b}?</div>
+      <input id="triviaAns" type="number" style="width:4em;font-size:1.2em;margin:0.4em;">
+      <button class="btn" onclick="submitTrivia(${answer})">Submit</button>
+      <button class="btn" onclick="closeMinigame()">Cancel</button>
+      </div>
+    `;
+  }
+  if(type==="rps"){
+    document.getElementById("minigameSection").innerHTML = `
+      <div class="minigame-box"><h2>Rock Paper Scissors!</h2>
+      <p>Choose:</p>
+      <button class="btn" onclick="submitRPS('rock')">Rock</button>
+      <button class="btn" onclick="submitRPS('paper')">Paper</button>
+      <button class="btn" onclick="submitRPS('scissors')">Scissors</button>
+      <button class="btn" onclick="closeMinigame()">Cancel</button>
+      </div>
+    `;
+  }
+  if(type==="guessgift"){
+    let gifts = ["Bike","Teddy Bear","Book","Puzzle","Board Game"];
+    let actual = gifts[Math.floor(Math.random()*gifts.length)];
+    minigame.gift=actual;
+    document.getElementById("minigameSection").innerHTML = `
+      <div class="minigame-box"><h2>Guess the Gift!</h2>
+      <div>Your parent bought you a surprise gift! Guess which:</div>
+      ${gifts.map(g=>`<button class="btn" onclick="submitGift('${g}')">${g}</button>`).join(" ")}
+      <button class="btn" onclick="closeMinigame()">Cancel</button>
+      </div>
+    `;
+  }
+}
+function submitTrivia(correct) {
+  let ans = parseInt(document.getElementById("triviaAns").value);
+  if(ans===correct){player.stats.intelligence+=2;addLog("Correct! Intelligence +2","good","✅");timelineEvent("Quiz win!","✅","#16a34a");}
+  else{addLog("Incorrect! No bonus this time.","bad","❌");}
+  minigame = null; closeMinigame(); updateUI();
+}
+function submitRPS(choice) {
+  let arr = ["rock","paper","scissors"], ai = arr[Math.floor(Math.random()*3)];
+  if(choice===ai){addLog(`It's a tie! Both chose ${choice}.`,"neutral","🤝");}
+  else if(
+    (choice==="rock"&&ai==="scissors")||
+    (choice==="paper"&&ai==="rock")||
+    (choice==="scissors"&&ai==="paper")
+  ){player.stats.social+=2;addLog(`You win! You: ${choice}, Friend: ${ai}. Social +2.`,"good","🏆");timelineEvent("Won RPS!","🏆","#16a34a");}
+  else{addLog(`You lost! You: ${choice}, Friend: ${ai}.`,"bad","😬");}
+  minigame = null; closeMinigame(); updateUI();
+}
+function submitGift(choice) {
+  if(choice===minigame.gift){player.stats.happiness+=4;addLog(`Correct! You got a ${choice}! Happiness +4`,"good","🎁");timelineEvent("Guessed gift!","🎁","#16a34a");}
+  else{addLog(`Nope, it was actually a ${minigame.gift}. Still nice though.`,"neutral","🎁");}
+  minigame = null; closeMinigame(); updateUI();
+}
+
+// ------------ Events and Relationships -------------
+function processSpecialEvent() {
+  let rare = Math.random();
+  if(rare<0.15) {addLog("You found a hidden talent! Intelligence +3, Happiness +3","special","🌟");player.stats.intelligence+=3;player.stats.happiness+=3;timelineEvent("Discovered talent!","🌟","#a21caf");}
+  else if(rare<0.29) {addLog("You won a school competition! Social +5, Intelligence +2","special","🏅");player.stats.social+=5;player.stats.intelligence+=2;timelineEvent("Won competition!","🏅","#a21caf");}
+  else if(rare<0.40) {addLog("Family took a memorable vacation! Happiness +7","special","✈️");player.stats.happiness+=7;timelineEvent("Family trip!","✈️","#a21caf");}
+  else if(rare<0.56) {addLog("Friend became your best friend for life! Bond +10","special","🤝");let best = player.relationships[Math.floor(Math.random()*player.relationships.length)];if(best)best.bond+=10;}
+  else {addLog("You saved someone from an accident! Social +7","special","🦸");player.stats.social+=7;timelineEvent("Hero moment!","🦸","#a21caf");}
+}
+function processRandomEvent() {
+  // Childhood
+  if(player.age<=12){
+    if(Math.random()<0.21) makeFriend("kid");
+    else if(Math.random()<0.15) {player.stats.happiness+=2;addLog("You had a fun day at school!","good","🎒");}
+    else addLog("A normal day.","neutral","🌤️");
+  } 
+  // Teen
+  else if(player.age<=17){
+    if(Math.random()<0.18) makeFriend("teen");
+    else if(Math.random()<0.1) {player.stats.happiness+=3;addLog("Your favorite band released a new song!","good","🎵");}
+    else addLog("Nothing special happened.","neutral","🕰️");
+  }
+  // Adult
+  else {
+    if(Math.random()<0.13 && !player.spouse) {makeRelationship("spouse");}
+    if(Math.random()<0.13 && player.spouse) haveChild();
+    if(Math.random()<0.13 && player.children.length) {addLog(`${player.children[0].name} won an award! You are proud.`,"good","🏆");}
+    else addLog("Just another day of life.","neutral","🕰️");
+  }
+}
+function makeFriend(type) {
+  let names = ["Sam","Taylor","Casey","Jordan","Riley","Drew","Morgan","Jamie","Devon","Harper","Finley","Phoenix","River","Robin","Jules"];
+  let friend = {
+    name: names[Math.floor(Math.random()*names.length)],
+    age: player.age + Math.floor(Math.random()*3-1),
+    alive: true, bond:50+Math.floor(Math.random()*30),
+    type: type||"friend"
+  };
+  player.relationships.push(friend);
+  addLog(`You made a new friend: ${friend.name}!`,"good","🤝");timelineEvent("New friend: "+friend.name,"🤝","#60a5fa");
+}
+function makeRelationship(kind) {
+  let names = kind==="spouse"?["Alexis","Skyler","Reese","Robin","Charlie"]:["Taylor","Avery","Casey","Jamie"];
+  let r = {
+    name: names[Math.floor(Math.random()*names.length)],
+    age: player.age,
+    alive: true, bond: 65+Math.floor(Math.random()*20),
+    type: kind
+  };
+  if(kind==="spouse"){player.spouse=r;addLog(`You found your soulmate: ${r.name}!`,"good","💍");timelineEvent("Met soulmate "+r.name,"💍","#f472b6");}
+  else if(kind==="rival"){player.relationships.push({...r,type:"rival"});addLog(`You have a new rival: ${r.name}!`,"bad","😠");}
+  else{player.relationships.push(r);addLog(`You have a new crush: ${r.name}!`,"good","💘");}
+}
+function haveChild() {
+  let names = ["Kai","Avery","Jordan","River","Quinn","Sky","Blake","Shay","Rowan"];
+  let child = {name:names[Math.floor(Math.random()*names.length)], age:0, alive:true};
+  player.children.push(child);
+  addLog(`You had a child: ${child.name}!`,"good","👶");timelineEvent("Had a child: "+child.name,"👶","#fbbf24");
+}
+
+// ----------- UI / Stats / Timeline -----------
+function updatePlayerStats() {
+  let s=player.stats, stg=currentStage();
+  document.getElementById("playerStats").innerHTML=`
+    <div class="section">
+      <strong>Name:</strong> ${player.name} &nbsp; <strong>Age:</strong> ${player.age} (${stg.label})
+      <br><strong>Money:</strong> $${player.money} 
+      <br>
+      ${statLine("Health","❤️",s.health,stg.stats.maxHealth)}
+      ${statLine("Happiness","😊",s.happiness,100)}
+      ${statLine("Intelligence","🧠",s.intelligence,50)}
+      ${statLine("Social","💬",s.social,50)}
+    </div>
+  `;
+}
+function statLine(label,icon,val,max=100) {
+  let barColor = val/max < 0.25 ? "#f43f5e" : val/max > 0.7 ? "#22c55e" : "#6366f1";
+  return `
+    <span class="stat-label"><span class="stat-icon">${icon}</span>${label}: ${val}</span>
+    <div class="stat-bar"><div class="stat-bar-inner" style="width:${Math.max(0,Math.min(val/max,1))*100}%;background:${barColor}"></div></div>
+  `;
+}
+function updateFamilySection() {
+  document.getElementById("familySection").innerHTML=`
+    <div class="section">
+      <h2>Family 👨‍👩‍👧‍👦</h2>
+      <div class="family">
+        <b>Parents:</b> ${player.parents.map(p=>`${p.name} (${p.alive?"alive":"deceased"}, bond:${p.bond}, mood:${p.mood})`).join(", ")}
+        <br><b>Spouse:</b> ${player.spouse?`${player.spouse.name} (${player.spouse.alive?"alive":"deceased"}, bond:${player.spouse.bond||65})`:"None"}
+        <br><b>Children:</b> ${player.children.length?player.children.map(c=>`${c.name} (${c.age})`).join(", "):"None"}
+      </div>
+    </div>
+  `;
+}
+function updateRelationshipsSection() {
+  document.getElementById("relationshipsSection").innerHTML=`
+    <div class="section">
+      <h2>Friends & Relationships</h2>
+      <div class="relationships">
+        ${player.relationships.length?
+          player.relationships.map(f=>`${f.name} (age:${f.age}, bond:${f.bond}, ${f.type}${f.alive?"":" lost"})`).join("<br>"):"No friends yet"}
+      </div>
+    </div>
+  `;
+}
+function updateTimelinePanel() {
+  document.getElementById("timelinePanel").innerHTML=`
+    <div class="timeline-panel">
+      <strong>Life Timeline:</strong>
+      <ul>
+      ${timeline.slice(-8).reverse().map(e=>`<li style="color:${e.color||"#6366f1"}">${e.icon||""} Age ${e.age}: ${e.event}</li>`).join("")}
+      </ul>
+    </div>
+  `;
+}
+function updateActionsPanel() {
+  if(gameOver||!player.alive){document.getElementById("actionsPanel").innerHTML="";return;}
+  let stg=currentStage();
+  document.getElementById("actionsPanel").innerHTML=
+    stg.actions.map(a=>`<button class="btn" onclick="handleAction('${a}')">${a}</button>`).join("");
+}
+function updateEventLog() {
+  document.getElementById("eventLog").innerHTML=eventLog.slice(-13).reverse().map(item=>`<div>${item}</div>`).join("");
+}
+function updateGameOverMsg() {
+  if(gameOver){document.getElementById("gameOverMsg").innerHTML="GAME OVER";restartBtn.style.display="block";}
+  else{document.getElementById("gameOverMsg").innerHTML="";restartBtn.style.display="none";}
+}
+function showLifeSummary() {
+  let html = `<div class="minigame-box"><h2>Life Summary</h2>
+    <ul>${timeline.slice(0).map(e=>`<li>${e.icon||""} Age ${e.age}: ${e.event}</li>`).join("")}</ul>
+    <strong>Thank you for playing!</strong>
+  </div>`;
+  document.getElementById("minigameSection").innerHTML = html;
+}
+function updateUI() {
+  updatePlayerStats();
+  updateFamilySection();
+  updateRelationshipsSection();
+  updateTimelinePanel();
+  updateActionsPanel();
+  updateEventLog();
+  updateGameOverMsg();
+}
+
+// ------- Restart -----------
+document.getElementById("restartBtn").onclick = function() {document.getElementById("minigameSection").innerHTML="";startCustom();};
+startCustom();
+window.handleAction=handleAction;
+window.askParent=askParent;
+window.closeMinigame=closeMinigame;
+window.showParentAsk=showParentAsk;
+window.showMinigame=showMinigame;
+window.submitTrivia=submitTrivia;
+window.submitRPS=submitRPS;
+window.submitGift=submitGift;
+</script>
+</body>
+</html>

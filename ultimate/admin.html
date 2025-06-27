@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Ultimate Click Game – Admin Panel (Tournament Mode)</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 720px; margin: auto; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #bbb; padding: 8px; text-align: center; }
+    th { background: #eee; }
+    .danger { color: red; font-weight: bold; }
+    .adminBox { border: 1px solid #ccc; border-radius: 8px; padding: 15px; margin: 25px 0; background: #f8f8f8; }
+    #logoutBtn { margin-top: 12px; }
+    .highlight { color: green; font-weight: bold; }
+    .activeRow { background: #ffe299; }
+  </style>
+</head>
+<body>
+  <h1>Ultimate Click Game – Admin Panel</h1>
+  <a href="index.html">&larr; Back to Game</a>
+  <div id="adminLogin" class="adminBox">
+    <h3>Admin Login</h3>
+    <p>
+      Admin Password: <input type="password" id="adminPass" placeholder="Admin password">
+      <button id="loginBtn">Login</button>
+    </p>
+    <p id="loginMsg" class="danger"></p>
+  </div>
+  <div id="adminArea" style="display:none">
+    <button id="logoutBtn">Logout</button>
+    <h3>Tournaments</h3>
+    <div class="adminBox">
+      <h4>Create New Tournament</h4>
+      <p>
+        Name: <input id="tournamentName" type="text" placeholder="Tournament Name">
+        Timer:
+        <select id="tournamentTimer">
+          <option value="1">1 sec</option>
+          <option value="5">5 sec</option>
+          <option value="10" selected>10 sec</option>
+          <option value="30">30 sec</option>
+          <option value="60">60 sec</option>
+        </select>
+        <button id="createTournamentBtn">Create Tournament</button>
+      </p>
+    </div>
+    <h4>Manage Tournaments</h4>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Timer (s)</th>
+          <th>Status</th>
+          <th>Leaderboard</th>
+          <th>Activate</th>
+          <th>End/Delete</th>
+        </tr>
+      </thead>
+      <tbody id="tournamentTable"></tbody>
+    </table>
+    <h4>All-Time Leaderboards (per timer)</h4>
+    <div id="allTimeLeaderboards"></div>
+    <br>
+    <h3>All Users</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>User</th>
+          <th>Password</th>
+          <th>Delete User</th>
+        </tr>
+      </thead>
+      <tbody id="userTable"></tbody>
+    </table>
+    <br>
+    <button id="resetBtn" style="color:darkred; font-weight:bold;">Reset ALL High Scores & Tournament Scores</button>
+    <p id="adminMsg"></p>
+  </div>
+  <script>
+    // -------- SET YOUR ADMIN PASSWORD HERE ---------
+    const ADMIN_PASSWORD = "superadmin";
+    // ----------------------------------------------
+
+    let highScores = {};
+    let passwords = {};
+    let tournamentData = {};
+    let tournamentScores = {};
+    let tournamentActive = null;
+
+    function loadData() {
+      if(localStorage.getItem("highScores")) highScores = JSON.parse(localStorage.getItem("highScores"));
+      if(localStorage.getItem("passwords")) passwords = JSON.parse(localStorage.getItem("passwords"));
+      if(localStorage.getItem("tournamentData")) tournamentData = JSON.parse(localStorage.getItem("tournamentData"));
+      if(localStorage.getItem("tournamentScores")) tournamentScores = JSON.parse(localStorage.getItem("tournamentScores"));
+      if(localStorage.getItem("tournamentActive")) tournamentActive = localStorage.getItem("tournamentActive");
+    }
+
+    // ---- Tournament Table ----
+    function updateTournamentTable() {
+      loadData();
+      const tbody = document.getElementById("tournamentTable");
+      tbody.innerHTML = "";
+      let any = false;
+      for (let tid in tournamentData) {
+        any = true;
+        let t = tournamentData[tid];
+        let status = (tid === tournamentActive) ? `<span class="highlight">ACTIVE</span>` : "Inactive";
+        let leaderboardBtn = `<button onclick="showTournamentLeaderboard('${tid}')">Show</button>`;
+        let activateBtn = (tid === tournamentActive) ? "" : `<button onclick="activateTournament('${tid}')">Activate</button>`;
+        let deleteBtn = `<button onclick="endTournament('${tid}')">${tid === tournamentActive ? "End" : "Delete"}</button>`;
+        tbody.innerHTML += `<tr${tid === tournamentActive ? ' class="activeRow"' : ''}>
+          <td>${t.name}</td>
+          <td>${t.timer}</td>
+          <td>${status}</td>
+          <td>${leaderboardBtn}</td>
+          <td>${activateBtn}</td>
+          <td>${deleteBtn}</td>
+        </tr>`;
+      }
+      if (!any) {
+        tbody.innerHTML = '<tr><td colspan="6">No tournaments yet.</td></tr>';
+      }
+    }
+
+    // ---- Tournament Actions ----
+    window.activateTournament = function(tid) {
+      localStorage.setItem("tournamentActive", tid);
+      updateTournamentTable();
+      document.getElementById("adminMsg").textContent = `Tournament "${tournamentData[tid].name}" activated.`;
+    };
+    window.endTournament = function(tid) {
+      if (confirm(`End/delete tournament "${tournamentData[tid].name}"?`)) {
+        if (tournamentActive === tid) localStorage.removeItem("tournamentActive");
+        delete tournamentData[tid];
+        // Remove all scores for this tournament
+        for (let user in tournamentScores) {
+          if (tournamentScores[user][tid]) delete tournamentScores[user][tid];
+        }
+        localStorage.setItem("tournamentData", JSON.stringify(tournamentData));
+        localStorage.setItem("tournamentScores", JSON.stringify(tournamentScores));
+        updateTournamentTable();
+        document.getElementById("adminMsg").textContent = "Tournament deleted.";
+      }
+    };
+
+    // ---- Tournament Leaderboard Display ----
+    window.showTournamentLeaderboard = function(tid) {
+      let t = tournamentData[tid];
+      let scores = [];
+      for (let user in tournamentScores) {
+        if (tournamentScores[user][tid]) {
+          scores.push({user, score: tournamentScores[user][tid]});
+        }
+      }
+      scores.sort((a, b) => b.score - a.score);
+      let msg = `🏆 <b>${t.name} (${t.timer}s) Leaderboard:</b><ol>`;
+      for (let i = 0; i < Math.min(scores.length, 10); i++) {
+        msg += `<li>${scores[i].user}: ${scores[i].score}</li>`;
+      }
+      if (scores.length === 0) msg += "<li>No scores yet!</li>";
+      msg += "</ol>";
+      document.getElementById("adminMsg").innerHTML = msg;
+    };
+
+    // ---- Create Tournament ----
+    document.getElementById("createTournamentBtn").onclick = function() {
+      let name = document.getElementById("tournamentName").value.trim();
+      let timer = document.getElementById("tournamentTimer").value;
+      if (!name) {
+        document.getElementById("adminMsg").textContent = "Tournament name required.";
+        return;
+      }
+      let tid = Date.now().toString();
+      tournamentData[tid] = { name, timer };
+      localStorage.setItem("tournamentData", JSON.stringify(tournamentData));
+      document.getElementById("adminMsg").textContent = `Tournament "${name}" created.`;
+      updateTournamentTable();
+    };
+
+    // ---- All-Time Leaderboards ----
+    function updateAllTimeLeaderboards() {
+      loadData();
+      let area = document.getElementById("allTimeLeaderboards");
+      area.innerHTML = "";
+      const timeOptions = [1, 5, 10, 30, 60];
+      for (let t of timeOptions) {
+        let scores = [];
+        for (let user in highScores) {
+          if (highScores[user][t]) {
+            scores.push({user, score: highScores[user][t]});
+          }
+        }
+        scores.sort((a, b) => b.score - a.score);
+        let lb = `<b>${t} sec:</b> <ol>`;
+        for (let i = 0; i < Math.min(scores.length, 5); i++) {
+          lb += `<li>${scores[i].user}: ${scores[i].score}</li>`;
+        }
+        if (scores.length === 0) lb += "<li>No scores yet!</li>";
+        lb += "</ol>";
+        area.innerHTML += lb;
+      }
+    }
+
+    // ---- Users Table ----
+    function updateUserTable() {
+      loadData();
+      let tbody = document.getElementById("userTable");
+      tbody.innerHTML = "";
+      for (let user in passwords) {
+        let row = document.createElement("tr");
+        row.innerHTML = `<td>${user}</td>
+                         <td>${passwords[user]}</td>
+                         <td><button onclick="deleteUser('${user}')">Delete</button></td>`;
+        tbody.appendChild(row);
+      }
+      if (Object.keys(passwords).length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3">No users found.</td></tr>';
+      }
+    }
+    window.deleteUser = function(user) {
+      if (confirm(`Delete user "${user}"?`)) {
+        delete passwords[user];
+        delete highScores[user];
+        delete tournamentScores[user];
+        localStorage.setItem("passwords", JSON.stringify(passwords));
+        localStorage.setItem("highScores", JSON.stringify(highScores));
+        localStorage.setItem("tournamentScores", JSON.stringify(tournamentScores));
+        updateUserTable();
+        document.getElementById("adminMsg").textContent = `User "${user}" deleted.`;
+      }
+    };
+
+    // ---- Reset Button ----
+    document.getElementById("resetBtn").onclick = function() {
+      if (confirm("Are you sure? This will set all high scores and all tournament scores to 0.")) {
+        for (let user in highScores) highScores[user] = {};
+        for (let user in tournamentScores) tournamentScores[user] = {};
+        localStorage.setItem("highScores", JSON.stringify(highScores));
+        localStorage.setItem("tournamentScores", JSON.stringify(tournamentScores));
+        updateAllTimeLeaderboards();
+        document.getElementById("adminMsg").textContent = "All scores have been reset!";
+      }
+    };
+
+    // ---- Admin Login/Logout ----
+    document.getElementById("loginBtn").onclick = function() {
+      let inputPass = document.getElementById("adminPass").value;
+      if (inputPass === ADMIN_PASSWORD) {
+        document.getElementById("adminLogin").style.display = "none";
+        document.getElementById("adminArea").style.display = "block";
+        updateTournamentTable();
+        updateAllTimeLeaderboards();
+        updateUserTable();
+        document.getElementById("adminMsg").textContent = "";
+      } else {
+        document.getElementById("loginMsg").textContent = "Wrong password!";
+      }
+    };
+    document.getElementById("logoutBtn").onclick = function() {
+      document.getElementById("adminLogin").style.display = "block";
+      document.getElementById("adminArea").style.display = "none";
+      document.getElementById("adminPass").value = "";
+      document.getElementById("loginMsg").textContent = "";
+      document.getElementById("adminMsg").textContent = "";
+    };
+
+    // On load, hide admin area and load all data
+    document.getElementById("adminArea").style.display = "none";
+    loadData();
+  </script>
+</body>
+</html>

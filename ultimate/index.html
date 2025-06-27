@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Ultimate Click Game: Tournament Mode</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 450px; margin: auto; }
+    #leaderboard { background: #f7f7f7; border-radius: 8px; padding: 10px; margin: 15px 0; }
+    #gameOver { color: red; font-weight: bold; }
+    #startBtn { font-size: 1.2em; padding: 10px 25px; border-radius: 10px; }
+    .highlight { color: green; font-weight: bold; }
+    #tournamentBanner { background: gold; border-radius: 8px; padding: 8px; margin: 12px 0; text-align: center; }
+  </style>
+</head>
+<body>
+  <h1>Ultimate Click Game!</h1>
+  <div id="tournamentBanner" style="display:none;"></div>
+  <p>
+    Name: <input id="username" type="text" placeholder="Your name">
+    Password: <input id="password" type="password" placeholder="Password">
+    <button id="loginBtn">Login / Register</button>
+  </p>
+  <p id="welcome"></p>
+  <p id="timerArea">
+    Choose game time: 
+    <select id="gameTime">
+      <option value="1">1 second</option>
+      <option value="5">5 seconds</option>
+      <option value="10" selected>10 seconds</option>
+      <option value="30">30 seconds</option>
+      <option value="60">60 seconds</option>
+    </select>
+  </p>
+  <p id="highScoreLabel">
+    <span id="highScoreText">Your High Score (</span><span id="highScoreTimer">10</span> sec): <span id="highScore">0</span>
+  </p>
+  <p>Time Left: <span id="time">10</span> seconds</p>
+  <p>Your Score: <span id="score">0</span></p>
+  <button id="startBtn" disabled>Start Game</button>
+  <p id="gameOver"></p>
+
+  <div id="leaderboard">
+    <h3 id="lbTitle">🏆 Leaderboard (<span id="lbSec">10</span> sec)</h3>
+    <ol id="leaders"></ol>
+  </div>
+
+ 
+  <script>
+    // --- Data Structures ---
+    let highScores = {};
+    let passwords = {};
+    let tournamentData = {};
+    let tournamentScores = {};
+    let tournamentActive = null;
+    let currentUser = "";
+    let score = 0;
+    let timeLeft = 10;
+    let totalTime = 10;
+    let timer = null;
+    let gameActive = false;
+
+    // --- Load from localStorage ---
+    function loadData() {
+      highScores = JSON.parse(localStorage.getItem("highScores") || "{}");
+      passwords = JSON.parse(localStorage.getItem("passwords") || "{}");
+      tournamentData = JSON.parse(localStorage.getItem("tournamentData") || "{}");
+      tournamentScores = JSON.parse(localStorage.getItem("tournamentScores") || "{}");
+      tournamentActive = localStorage.getItem("tournamentActive") || null;
+    }
+    loadData();
+
+    // --- Elements ---
+    const usernameInput = document.getElementById("username");
+    const passwordInput = document.getElementById("password");
+    const loginBtn = document.getElementById("loginBtn");
+    const welcomeMsg = document.getElementById("welcome");
+    const scoreBox = document.getElementById("score");
+    const highScoreBox = document.getElementById("highScore");
+    const highScoreTimer = document.getElementById("highScoreTimer");
+    const highScoreText = document.getElementById("highScoreText");
+    const timeBox = document.getElementById("time");
+    const startBtn = document.getElementById("startBtn");
+    const gameOverMsg = document.getElementById("gameOver");
+    const gameTimeSelect = document.getElementById("gameTime");
+    const leaderboard = document.getElementById("leaders");
+    const lbSec = document.getElementById("lbSec");
+    const tournamentBanner = document.getElementById("tournamentBanner");
+    const timerArea = document.getElementById("timerArea");
+    const highScoreLabel = document.getElementById("highScoreLabel");
+    const lbTitle = document.getElementById("lbTitle");
+    // Sounds
+    const soundClick = document.getElementById("soundClick");
+    const soundStart = document.getElementById("soundStart");
+    const soundOver = document.getElementById("soundOver");
+
+    function playSound(sound) {
+      sound.currentTime = 0;
+      sound.play();
+    }
+
+    // --- High Score Getters ---
+    function getUserHighScore(user, t) {
+      return (user && highScores[user] && highScores[user][t]) ? highScores[user][t] : 0;
+    }
+    function getUserTournamentScore(user, tId) {
+      return (user && tournamentScores[user] && tournamentScores[user][tId]) ? tournamentScores[user][tId] : 0;
+    }
+
+    function updateTournamentUI() {
+      loadData();
+      if (tournamentActive && tournamentData[tournamentActive]) {
+        const tObj = tournamentData[tournamentActive];
+        tournamentBanner.style.display = "block";
+        tournamentBanner.innerHTML = `<b>TOURNAMENT ACTIVE:</b> ${tObj.name} – ${tObj.timer}s`;
+        timerArea.style.display = "none";
+        gameTimeSelect.value = tObj.timer;
+        lbSec.textContent = tObj.timer;
+        highScoreTimer.textContent = tObj.timer;
+        highScoreBox.textContent = getUserTournamentScore(currentUser, tournamentActive);
+        highScoreText.textContent = "Your Tournament Score: ";
+        lbTitle.innerHTML = `🏆 ${tObj.name} (${tObj.timer}s) Leaderboard`;
+        timeBox.textContent = tObj.timer;
+      } else {
+        tournamentBanner.style.display = "none";
+        timerArea.style.display = "";
+        lbSec.textContent = gameTimeSelect.value;
+        highScoreTimer.textContent = gameTimeSelect.value;
+        highScoreBox.textContent = getUserHighScore(currentUser, gameTimeSelect.value);
+        highScoreText.textContent = "Your High Score (";
+        lbTitle.innerHTML = `🏆 Leaderboard (<span id="lbSec">${gameTimeSelect.value}</span> sec)`;
+        timeBox.textContent = gameTimeSelect.value;
+      }
+    }
+
+    function showLeaderboard() {
+      leaderboard.innerHTML = "";
+      let top = [];
+      if (tournamentActive && tournamentData[tournamentActive]) {
+        let tId = tournamentActive;
+        let scores = [];
+        for (let user in tournamentScores) {
+          if (tournamentScores[user][tId]) {
+            scores.push({user, score: tournamentScores[user][tId]});
+          }
+        }
+        scores.sort((a, b) => b.score - a.score);
+        top = scores.slice(0,5);
+      } else {
+        let t = gameTimeSelect.value;
+        let scores = [];
+        for (let user in highScores) {
+          if (highScores[user][t]) {
+            scores.push({user, score: highScores[user][t]});
+          }
+        }
+        scores.sort((a, b) => b.score - a.score);
+        top = scores.slice(0,5);
+      }
+      for (let i = 0; i < top.length; i++) {
+        let highlight = (top[i].user === currentUser) ? ' class="highlight"' : '';
+        leaderboard.innerHTML += `<li${highlight}>${top[i].user}: ${top[i].score}</li>`;
+      }
+      if(top.length === 0) leaderboard.innerHTML = "<li>No scores yet!</li>";
+    }
+
+    loginBtn.onclick = function() {
+      const name = usernameInput.value.trim();
+      const pass = passwordInput.value;
+      if (name === "" || pass === "") {
+        welcomeMsg.textContent = "Please enter both name and password!";
+        startBtn.disabled = true;
+        highScoreBox.textContent = 0;
+        showLeaderboard();
+        updateTournamentUI();
+        return;
+      }
+      if (passwords[name]) {
+        if (passwords[name] === pass) {
+          currentUser = name;
+          welcomeMsg.textContent = "Welcome back, " + currentUser + "!";
+          if (!highScores[currentUser]) highScores[currentUser] = {};
+          if (!tournamentScores[currentUser]) tournamentScores[currentUser] = {};
+          startBtn.disabled = false;
+          scoreBox.textContent = 0;
+          score = 0;
+          gameOverMsg.textContent = "";
+        } else {
+          welcomeMsg.textContent = "Wrong password! Try again.";
+          startBtn.disabled = true;
+          highScoreBox.textContent = 0;
+          scoreBox.textContent = 0;
+        }
+      } else {
+        passwords[name] = pass;
+        localStorage.setItem("passwords", JSON.stringify(passwords));
+        currentUser = name;
+        highScores[currentUser] = {};
+        tournamentScores[currentUser] = {};
+        localStorage.setItem("highScores", JSON.stringify(highScores));
+        localStorage.setItem("tournamentScores", JSON.stringify(tournamentScores));
+        welcomeMsg.textContent = "New user created! Welcome, " + currentUser + "!";
+        startBtn.disabled = false;
+        scoreBox.textContent = 0;
+        score = 0;
+        gameOverMsg.textContent = "";
+      }
+      showLeaderboard();
+      updateTournamentUI();
+    };
+
+    startBtn.onclick = function() {
+      if (!gameActive) {
+        startGame();
+      } else {
+        score += 1;
+        scoreBox.textContent = score;
+        // playSound(soundClick);
+      }
+    };
+
+    gameTimeSelect.onchange = function() {
+      if (!tournamentActive) {
+        showLeaderboard();
+        updateTournamentUI();
+        timeBox.textContent = gameTimeSelect.value;
+      }
+    };
+
+    function startGame() {
+      if (tournamentActive && tournamentData[tournamentActive]) {
+        totalTime = parseInt(tournamentData[tournamentActive].timer);
+      } else {
+        totalTime = parseInt(gameTimeSelect.value);
+      }
+      score = 0;
+      timeLeft = totalTime;
+      scoreBox.textContent = score;
+      timeBox.textContent = timeLeft;
+      gameOverMsg.textContent = "";
+      startBtn.textContent = "Click Me!";
+      startBtn.disabled = false;
+      if (!tournamentActive) gameTimeSelect.disabled = true;
+      gameActive = true;
+    //   playSound(soundStart);
+      startBtn.focus();
+
+      timer = setInterval(function() {
+        timeLeft -= 1;
+        timeBox.textContent = timeLeft;
+        if (timeLeft <= 0) {
+          endGame();
+        }
+      }, 1000);
+    }
+
+    function endGame() {
+      clearInterval(timer);
+      gameActive = false;
+      startBtn.textContent = "Start Game";
+      if (!tournamentActive) gameTimeSelect.disabled = false;
+      startBtn.disabled = false;
+    //   playSound(soundOver);
+
+      if (tournamentActive && tournamentData[tournamentActive]) {
+        if (!tournamentScores[currentUser]) tournamentScores[currentUser] = {};
+        if (!tournamentScores[currentUser][tournamentActive] || score > tournamentScores[currentUser][tournamentActive]) {
+          tournamentScores[currentUser][tournamentActive] = score;
+          localStorage.setItem("tournamentScores", JSON.stringify(tournamentScores));
+          highScoreBox.textContent = score;
+          gameOverMsg.textContent = "Game Over! Your score is: " + score + " NEW TOURNAMENT HIGH SCORE!";
+        } else {
+          gameOverMsg.textContent = "Game Over! Your score is: " + score;
+        }
+      } else {
+        let t = gameTimeSelect.value;
+        if (!highScores[currentUser]) highScores[currentUser] = {};
+        if (!highScores[currentUser][t] || score > highScores[currentUser][t]) {
+          highScores[currentUser][t] = score;
+          localStorage.setItem("highScores", JSON.stringify(highScores));
+          highScoreBox.textContent = score;
+          gameOverMsg.textContent = "Game Over! Your score is: " + score + " NEW HIGH SCORE!";
+        } else {
+          gameOverMsg.textContent = "Game Over! Your score is: " + score;
+        }
+      }
+      showLeaderboard();
+      updateTournamentUI();
+    }
+
+    // --- Show leaderboard & UI on load
+    showLeaderboard();
+    updateTournamentUI();
+
+    startBtn.textContent = "Start Game";
+    startBtn.disabled = true;
+
+    document.addEventListener("keydown", function(event) {
+      if (event.key === "Enter" && document.activeElement !== startBtn) {
+        event.preventDefault();
+        loginBtn.click();
+      }
+    });
+
+    timeBox.textContent = gameTimeSelect.value;
+    highScoreTimer.textContent = gameTimeSelect.value;
+    lbSec.textContent = gameTimeSelect.value;
+  </script>
+</body>
+</html>

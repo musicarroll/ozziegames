@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>MY LIVE TEST FILE 123</title>
+  <style>
+    html, body { height: 100%; margin: 0; overflow: hidden; background: #121212; }
+    body { display: flex; align-items: center; justify-content: center; height: 100vh; }
+    canvas { background: radial-gradient(circle at 50% 50%, #191970 0%, #121212 100%); box-shadow: 0 0 40px #0ff8, 0 0 160px #0ff4; border-radius: 24px; display: block; position: relative; z-index: 1; }
+    #overlay { position: absolute; left: 0; top: 0; width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; flex-direction: column; z-index: 10; color: #0ff; font-family: 'Segoe UI', 'Arial', sans-serif; text-shadow: 0 0 16px #0ff8; pointer-events: none; user-select: none; }
+    .button { margin-top: 1.3em; background: #0ff3; border: 2px solid #0ff; color: #0ff; border-radius: 1em; font-size: 1.3em; padding: 0.5em 2em; cursor: pointer; pointer-events: auto; transition: background 0.2s; font-family: inherit; }
+    .button:hover { background: #0ff6; }
+    h1 { font-size: 3em; margin: 0.1em 0; letter-spacing: 0.1em; }
+    .score, .money { font-size: 2em; margin-top: 1em; }
+    .shop-title { font-size: 2.1em; margin-bottom: 0.5em; color: #0ff; }
+    .shop-tabs { display:flex; gap:1.2em; margin-bottom:1em; justify-content:center;}
+    .shop-tab { font-size:1.15em; color:#0ff; background:#161b; border-radius:1em 1em 0 0; padding:0.2em 1.5em; cursor:pointer; pointer-events:auto; border-bottom:2px solid transparent;}
+    .shop-tab.selected { font-weight:bold; border-bottom:3px solid #0ff; background:#222b;}
+    .shop-list { display: flex; flex-wrap: wrap; gap: 2em; margin-top: 1em; justify-content: center; }
+    .shop-item { background: #222b; border-radius: 1.3em; box-shadow: 0 0 16px #0ff4; padding: 1em 2em; text-align: center; color: #fff; pointer-events: auto; min-width: 170px; margin-bottom: 1em;}
+    .shop-item.selected { outline: 3px solid #0ff; box-shadow: 0 0 24px #0ff8; }
+    .shop-button { margin-top: 1em; background: #111c; border: 1.5px solid #0ff; border-radius: 1em; color: #0ff; padding: 0.3em 1em; font-size: 1em; cursor: pointer; pointer-events: auto; transition: background 0.2s; font-family: inherit; }
+    .shop-button:disabled { background: #4448; color: #888; border: 1.5px solid #888; cursor: not-allowed; }
+    .shop-button:hover:not(:disabled) { background: #0ff2; }
+    .shop-price { font-size: 1.1em; color: #ff0; margin-top: 0.5em; }
+    .skin-preview { margin: 0 auto 0.7em auto; display: block; width: 44px; height: 44px; border-radius: 12px; box-shadow: 0 0 12px #fff8;}
+    .pet-preview { margin: 0 auto 0.7em auto; display: block; width: 44px; height: 44px; border-radius: 12px; box-shadow: 0 0 14px #fff8; background: #222;}
+    .upgrade-level { font-size: 1.1em; color: #0f0; margin-top: 0.2em; }
+    .shop-money { margin-bottom: 1em; font-size: 1.5em; color: #ff0; }
+    .desc { font-size: 1em; color: #aaa; margin-top: 0.6em; }
+    .level-up-popup { position: absolute; left:0;top:0;width:100vw;height:100vh;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:50;}
+    .shout-bar-bg { position:absolute;left:50%;transform:translateX(-50%); top:12px;width:240px;height:18px;background:#1136;border-radius:12px;box-shadow:0 0 8px #0ff8;z-index:2;border:1.5px solid #0ff; display:flex;align-items:center;justify-content:center;}
+    .shout-bar-fill { height:14px;background:#0ffb;border-radius:9px;transition:width 0.2s;box-shadow:0 0 8px #0ffb;}
+    .shout-bar-label { position:absolute;left:50%;top:0;width:240px;text-align:center;font-size:1em;color:#fff;text-shadow:0 0 8px #0ff6; user-select:none; pointer-events:none; z-index:3;}
+    .dash-bar-bg, .slowmo-bar-bg { position:absolute;left:50%;transform:translateX(-50%);top:38px;width:160px;height:15px;background:#1356;border-radius:8px;box-shadow:0 0 6px #0cf8;z-index:2;border:1.2px solid #0cf; display:flex;align-items:center;justify-content:center;}
+    .dash-bar-fill { height:11px;background:#0cf8;border-radius:7px;transition:width 0.2s;box-shadow:0 0 8px #0cf8;}
+    .dash-bar-label { position:absolute;left:50%;top:38px;width:160px;text-align:center;font-size:0.95em;color:#fff;text-shadow:0 0 8px #0cf6; user-select:none; pointer-events:none; z-index:3;}
+    .slowmo-bar-fill { height:11px;background:#fa0b;border-radius:7px;transition:width 0.2s;box-shadow:0 0 8px #fa0b;}
+    .slowmo-bar-label { position:absolute;left:50%;top:56px;width:160px;text-align:center;font-size:0.95em;color:#fff;text-shadow:0 0 8px #fa08; user-select:none; pointer-events:none; z-index:3;}
+  </style>
+</head>
+<body>
+  <canvas id="game" width="540" height="800"></canvas>
+  <div id="overlay"></div>
+  <div id="levelup-popup" class="level-up-popup" style="display:none;"></div>
+  <div id="shout-bar" class="shout-bar-bg" style="display:none;">
+    <div id="shout-fill" class="shout-bar-fill"></div>
+    <div class="shout-bar-label" id="shout-label"></div>
+  </div>
+  <div id="dash-bar" class="dash-bar-bg" style="display:none;">
+    <div id="dash-fill" class="dash-bar-fill"></div>
+    <div class="dash-bar-label" id="dash-label"></div>
+  </div>
+  <div id="slowmo-bar" class="slowmo-bar-bg" style="display:none;">
+    <div id="slowmo-fill" class="slowmo-bar-fill"></div>
+    <div class="slowmo-bar-label" id="slowmo-label"></div>
+  </div>
+
+  <script>
+    alert("JS script ran!");
+    console.log("JS script ran!");
+
+    window.onerror = function(msg, url, line, col, error) {
+      alert("JS Error: " + msg + "\n" + "Line: " + line);
+      return false;
+    };
+    let bossObj = null;
+    let bossTimer = 0; // at the top-level, if needed
+
+        // The entire JavaScript game code goes here...
+    // (Due to size, I recommend getting the **full code in sequential chunks** for reliable copy-paste. Just type "continue" or "c" for each chunk until I say "END OF FILE.")
+    // ========== DATA: SKINS, UPGRADES, PETS ==========
+    const SKINS = [
+      { key: "cyan", name: "Cyan", color: "#0ff", glow: "#0ff8", price: 0 },
+      { key: "red",  name: "Red", color: "#f33", glow: "#f338", price: 150 },
+      { key: "green",name: "Green", color: "#3f3", glow: "#3f38", price: 150 },
+      { key: "yellow",name: "Yellow", color: "#ff0", glow: "#ff08", price: 250 },
+      { key: "purple",name: "Purple", color: "#a3f", glow: "#a3f8", price: 350 },
+      { key: "rainbow", name: "Rainbow", color: "rainbow", glow: "#fff8", price: 800 }
+    ];
+    const UPGRADES = [
+      { key: "speed", name: "Move Speed", desc: "+1 max speed per level", price: [120, 220, 370], maxLevel: 3 },
+      { key: "orbValue", name: "Orb Value", desc: "+5 money per orb per level", price: [100, 180, 300], maxLevel: 3 },
+      { key: "shield", name: "Shield", desc: "Start with a shield (1 hit)", price: [240], maxLevel: 1 },
+      { key: "magnet", name: "Magnet", desc: "Orbs attract toward you", price: [300, 500], maxLevel: 2 },
+      { key: "doubleOrb", name: "Double Orb", desc: "10-20% chance for double orbs", price: [220,350], maxLevel:2 },
+      { key: "hyperDash", name: "Dash", desc: "Unlock dash ability [D]", price: [350, 500, 650], maxLevel:3 },
+      { key: "slowmo", name: "Slowmo", desc: "Unlock slow motion [F]", price: [400, 600, 800], maxLevel:3 },
+      { key: "autoShout", name: "Auto-Shout", desc: "Auto SHOUT on first hit", price: [600], maxLevel: 1 },
+      { key: "thorns", name: "Thorns", desc: "Reflects 1 boss projectile per boss", price: [500, 700], maxLevel:2 },
+      { key: "extraLife", name: "Extra Life", desc: "1 extra life per run", price: [850], maxLevel: 1 },
+      { key: "shoutPower", name: "Shout+", desc: "Shout clears projectiles/boss longer", price: [400, 750, 1100], maxLevel:3 }
+    ];
+    const PETS = [
+      {
+        key: "robofox", name: "RoboFox", price: 400,
+        desc: "Auto-collects nearby orbs (magnet)",
+        draw: (ctx, x, y) => {
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.beginPath();
+          ctx.arc(0, 0, 13, 0, 2 * Math.PI); ctx.fillStyle = "#fdc"; ctx.fill();
+          ctx.beginPath();
+          ctx.arc(6, -2, 7, Math.PI*0.9, Math.PI*1.9); ctx.fillStyle="#e84"; ctx.fill();
+          ctx.beginPath();
+          ctx.arc(-6, -2, 7, Math.PI*1.1, Math.PI*2.1); ctx.fillStyle="#e84"; ctx.fill();
+          ctx.fillStyle="#222"; ctx.fillRect(-6,-2,12,6);
+          ctx.beginPath(); ctx.arc(-4,0,2,0,2*Math.PI); ctx.arc(4,0,2,0,2*Math.PI); ctx.fillStyle="#000"; ctx.fill();
+          ctx.restore();
+        }
+      },
+      {
+        key: "bouncer", name: "Bouncer", price: 500,
+        desc: "Blocks 1 hit every level (shield)",
+        draw: (ctx, x, y) => {
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.beginPath();
+          ctx.arc(0, 0, 14, 0, 2*Math.PI); ctx.fillStyle = "#acf"; ctx.fill();
+          ctx.beginPath();
+          ctx.arc(0, -10, 7, Math.PI, 0); ctx.fillStyle="#fff"; ctx.fill();
+          ctx.strokeStyle="#fff"; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(-7,0);ctx.lineTo(7,0);ctx.stroke();
+          ctx.beginPath(); ctx.arc(0,5,4,0,2*Math.PI); ctx.fillStyle="#58e"; ctx.fill();
+          ctx.restore();
+        }
+      },
+      {
+        key: "starpup", name: "Starpup", price: 600,
+        desc: "+25% coins from orbs",
+        draw: (ctx, x, y) => {
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.rotate(-Math.PI/10);
+          ctx.fillStyle = "#ff8";
+          for(let i=0;i<5;i++) {
+            ctx.beginPath();
+            ctx.moveTo(0,-14);
+            for(let j=1;j<=5;j++) {
+              let angle = Math.PI*2*j/5 + i*2*Math.PI/5;
+              let r = j%2===0?6:14;
+              ctx.lineTo(Math.sin(angle)*r,-Math.cos(angle)*r);
+            }
+            ctx.fill();
+            ctx.rotate(Math.PI/5);
+          }
+          ctx.restore();
+        }
+      }
+    ];
+    // ========== SAVE DATA ==========
+    const defaultSave = {
+      money: 0,
+      highScore: 0,
+      unlockedSkins: { cyan: true },
+      equippedSkin: "cyan",
+      upgrades: {},
+      pets: { robofox:false, bouncer:false, starpup:false },
+      equippedPet: null,
+      bossBeaten: false
+    };
+    for (let u of UPGRADES) defaultSave.upgrades[u.key]=0;
+    let saveData = null;
+    function loadSave() {
+      try {
+        const data = JSON.parse(localStorage.getItem("neonDashSave") || "null");
+        if (!data) throw "No data";
+        for (let k in defaultSave) if (!(k in data)) data[k] = defaultSave[k];
+        for (let k in defaultSave.upgrades) if (!(k in data.upgrades)) data.upgrades[k] = 0;
+        for (let s of SKINS) if (!(s.key in data.unlockedSkins)) data.unlockedSkins[s.key] = false;
+        for (let p of PETS) if (!(p.key in data.pets)) data.pets[p.key] = false;
+        saveData = data;
+      } catch (e) {
+        saveData = JSON.parse(JSON.stringify(defaultSave));
+      }
+    }
+    function saveGame() {
+      localStorage.setItem("neonDashSave", JSON.stringify(saveData));
+    }
+    function addMoney(amount) {
+      saveData.money += amount;
+      saveGame();
+    }
+    function setHighScore(score) {
+      if (score > saveData.highScore) {
+        saveData.highScore = score;
+        saveGame();
+      }
+    }
+    loadSave();
+
+    // ==== CANVAS SETUP ====
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+    const W = canvas.width;
+    const H = canvas.height;
+    const overlay = document.getElementById("overlay");
+    const shoutBar = document.getElementById("shout-bar");
+    const shoutFill = document.getElementById("shout-fill");
+    const shoutLabel = document.getElementById("shout-label");
+    const dashBar = document.getElementById("dash-bar");
+    const dashFill = document.getElementById("dash-fill");
+    const dashLabel = document.getElementById("dash-label");
+    const slowmoBar = document.getElementById("slowmo-bar");
+    const slowmoFill = document.getElementById("slowmo-fill");
+    const slowmoLabel = document.getElementById("slowmo-label");
+    // ==== GAME STATE ====
+    let gameState = "start";
+    let score = 0, frame = 0, level = 1, speed = 4, player, obstacles = [], orbs = [], moneyThisRun = 0;
+    let shieldActive = false, petShieldUsed = false, autoShoutUsed = false, thornsUsed = 0, playerLives = 1;
+    let timeThisLevel = 0, levelingUp = false, bossStunTime = 0, bossReward = 500;
+    let shoutCooldown = 0, dashCooldown = 0, dashActive = false, dashTimer = 0, dashDir = {x:0,y:0};
+    let slowmoCooldown = 0, slowmoActive = false, slowmoTimer = 0;
+    let input = { left: false, right: false, up: false, down: false };
+    let petX = 0, petY = 0;
+    const LEVEL_TIME = 22;
+
+    // ==== PLAYER & OBSTACLE CREATION ====
+    function createPlayer() {
+      return { x: W/2-22, y: H-96, size: 44, alive: true };
+    }
+    function spawnObstacle() {
+      let w = 48 + Math.random()*48, h = 32 + Math.random()*32;
+      let x = Math.random()*(W-w), y = -h;
+      let color = "#f33", glow = "#f338";
+      if (Math.random() < 0.2) { color = "#ff0"; glow = "#ff08"; }
+      if (Math.random() < 0.11) { color = "#0ff"; glow = "#0ff8"; }
+      if (Math.random() < 0.07) { color = "#a3f"; glow = "#a3f8"; }
+      return { x, y, w, h, color, glow };
+    }
+    function spawnOrb() {
+      let size = 24;
+      let x = Math.random()*(W-size), y = -size;
+      let double = (saveData.upgrades.doubleOrb && Math.random() < (0.1+0.1*(saveData.upgrades.doubleOrb||0)));
+      let color = double ? "#ff0" : "#0ff";
+      let glow = double ? "#ff08" : "#0ff8";
+      return { x, y, size, color, glow, double };
+    }
+    function getActiveSkin() {
+      let s = SKINS.find(s=>s.key===saveData.equippedSkin);
+      if (!s) s = SKINS[0];
+      return s;
+    }
+
+    function drawNeonRect(x, y, w, h, color, glow) {
+      ctx.save();
+      if (color === "rainbow") {
+        let grad = ctx.createLinearGradient(x, y, x + w, y + h);
+        grad.addColorStop(0, "#0ff");
+        grad.addColorStop(0.2, "#ff0");
+        grad.addColorStop(0.4, "#f0f");
+        grad.addColorStop(0.6, "#0f0");
+        grad.addColorStop(0.8, "#f33");
+        grad.addColorStop(1, "#fff");
+        ctx.fillStyle = grad;
+      } else ctx.fillStyle = color;
+      ctx.shadowColor = glow;
+      ctx.shadowBlur = 24;
+      ctx.fillRect(x, y, w, h);
+      ctx.restore();
+    }
+    function drawNeonCircle(x, y, r, color, glow) {
+      ctx.save();
+      ctx.shadowColor = glow;
+      ctx.shadowBlur = 20;
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, 2 * Math.PI);
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.restore();
+    }
+    function drawNeonText(txt, x, y, size, color, glow, align='center') {
+      ctx.save();
+      ctx.font = `bold ${size}px Segoe UI, Arial, sans-serif`;
+      ctx.shadowColor = glow;
+      ctx.shadowBlur = 20;
+      ctx.textAlign = align;
+      ctx.fillStyle = color;
+      ctx.fillText(txt, x, y);
+      ctx.restore();
+    }
+    // --- Input ---
+    window.addEventListener('keydown', e => {
+      console.log('keydown', e.key, 'gameState:', gameState);
+      if (e.key === 'ArrowLeft') input.left = true;
+      if (e.key === 'ArrowRight') input.right = true;
+      if (e.key === 'ArrowUp') input.up = true;
+      if (e.key === 'ArrowDown') input.down = true;
+      if (gameState === 'start' && (e.key === ' ' || e.key === 'Enter')) startGame();
+      if (gameState === 'gameover' && (e.key === ' ' || e.key === 'Enter')) showShop();
+      if (gameState === 'shop' && (e.key === ' ' || e.key === 'Enter')) startGame();
+      if (gameState === 'playing' && e.key.toLowerCase() === 's') tryShout();
+      if (gameState === 'playing' && e.key.toLowerCase() === 'd') tryDash();
+      if (gameState === 'playing' && e.key.toLowerCase() === 'f') trySlowmo();
+    });
+    window.addEventListener('keyup', e => {
+      if (e.key === 'ArrowLeft') input.left = false;
+      if (e.key === 'ArrowRight') input.right = false;
+      if (e.key === 'ArrowUp') input.up = false;
+      if (e.key === 'ArrowDown') input.down = false;
+    });
+
+    // --- Utility ---
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function showOverlay(html) {
+      overlay.innerHTML = html;
+      overlay.style.display = 'flex';
+    }
+    window.showShop = showShop;
+    window.startGame = startGame;
+
+    // ========== SHOP LOGIC ==========
+
+    let shopTab = "skins"; // or "upgrades", "pets"
+
+    function showShop(tab) {
+      gameState = 'shop';
+      shopTab = tab || shopTab || "skins";
+      let html = `
+        <div class="shop-title">SHOP</div>
+        <div class="shop-tabs">
+          <div class="shop-tab${shopTab==='skins'?' selected':''}" onclick="showShop('skins')">Skins</div>
+          <div class="shop-tab${shopTab==='upgrades'?' selected':''}" onclick="showShop('upgrades')">Upgrades</div>
+          <div class="shop-tab${shopTab==='pets'?' selected':''}" onclick="showShop('pets')">Pets</div>
+        </div>
+        <div class="shop-money">Your Coins: <b>${saveData.money}</b></div>
+      `;
+      if(shopTab==="skins"){
+        html += `<div class="shop-list">`;
+        for(let skin of SKINS){
+          html += `<div class="shop-item${saveData.equippedSkin===skin.key?" selected":""}">
+            <div class="skin-preview" style="background:${skin.color==="rainbow"?"linear-gradient(90deg,#0ff,#f0f,#ff0,#0f0,#f33,#fff)":skin.color};box-shadow:0 0 18px ${skin.glow};"></div>
+            <div>${skin.name}</div>
+            ${saveData.unlockedSkins[skin.key] ? `
+              <button class="shop-button" id="equip-skin-${skin.key}"${saveData.equippedSkin===skin.key?" disabled":""}>
+                ${saveData.equippedSkin===skin.key?"Equipped":"Equip"}
+              </button>
+            ` : `
+              <div class="shop-price">💰 ${skin.price}</div>
+              <button class="shop-button" id="buy-skin-${skin.key}"${saveData.money < skin.price?" disabled":""}>Buy</button>
+            `}
+          </div>`;
+        }
+        html += `</div>`;
+      }
+      if(shopTab==="upgrades"){
+        html += `<div class="shop-list">`;
+        for(let upg of UPGRADES){
+          let level = saveData.upgrades[upg.key]||0;
+          let maxed = level >= upg.maxLevel;
+          let price = upg.price[level]||0;
+          html += `
+            <div class="shop-item${maxed?" selected":""}">
+              <div style="font-size:1.15em;margin-bottom:0.3em;">${upg.name}</div>
+              <div class="desc">${upg.desc}</div>
+              <div class="upgrade-level">Level: ${level}/${upg.maxLevel}</div>
+              ${maxed ? `<div style="color:#0f0;font-weight:bold;margin-top:0.6em;">MAXED</div>`
+              : `<div class="shop-price">💰 ${price}</div>
+                <button id="buy-upg-${upg.key}" class="shop-button"${saveData.money < price ? " disabled":""}>Buy</button>`
+              }
+            </div>
+          `;
+        }
+        html += `</div>`;
+      }
+      if(shopTab==="pets"){
+        html += `<div class="shop-list">`;
+        for (let pet of PETS) {
+          html += `<div class="shop-item${saveData.equippedPet===pet.key ? " selected" : ""}">
+            <canvas class="pet-preview" id="petprev-${pet.key}" width="44" height="44"></canvas>
+            <div>${pet.name}</div>
+            <div class="desc">${pet.desc}</div>
+            ${saveData.pets[pet.key] ? `
+              <button class="shop-button" id="equip-pet-${pet.key}"${saveData.equippedPet===pet.key?" disabled":""}>
+                ${saveData.equippedPet===pet.key?"Equipped":"Equip"}
+              </button>
+            ` : `
+              <div class="shop-price">💰 ${pet.price}</div>
+              <button class="shop-button" id="buy-pet-${pet.key}"${saveData.money < pet.price ? " disabled":""}>Buy</button>
+            `}
+          </div>`;
+        }
+        html += `</div>`;
+      }
+      html += `
+        <button class="button" id="shop-play-btn" style="margin-top:2em;">PLAY</button>
+        <div class="desc" style="margin-top:1em;">
+          Skins: just for style.<br>
+          Upgrades: improve your abilities.<br>
+          Pets: passive powers. Only one equipped.<br>
+          [Arrow keys] Move | [S] Shout | [D] Dash | [F] Slowmo
+        </div>
+      `;
+      overlay.innerHTML = html;
+      overlay.style.display = 'flex';
+
+      setTimeout(() => {
+        if(shopTab==="pets"){
+          for (let pet of PETS) {
+            let c = document.getElementById(`petprev-${pet.key}`);
+            if (c && pet.draw) pet.draw(c.getContext('2d'), 22, 22);
+          }
+        }
+        for(let skin of SKINS){
+          if (!saveData.unlockedSkins[skin.key]) {
+            let btn = document.getElementById("buy-skin-"+skin.key);
+            if(btn) btn.onclick = ()=>buySkin(skin.key);
+          } else {
+            let btn = document.getElementById("equip-skin-"+skin.key);
+            if(btn) btn.onclick = ()=>equipSkin(skin.key);
+          }
+        }
+        for(let upg of UPGRADES){
+          let btn = document.getElementById("buy-upg-"+upg.key);
+          if(btn) btn.onclick = ()=>buyUpgrade(upg.key);
+        }
+        for (let pet of PETS) {
+          if (!saveData.pets[pet.key]) {
+            let btn = document.getElementById(`buy-pet-${pet.key}`);
+            if (btn) btn.onclick = ()=>buyPet(pet.key);
+          } else {
+            let btn = document.getElementById(`equip-pet-${pet.key}`);
+            if (btn) btn.onclick = ()=>equipPet(pet.key);
+          }
+        }
+        document.getElementById("shop-play-btn").onclick = ()=>startGame();
+      }, 30);
+    }
+    function buySkin(key){
+      let skin = SKINS.find(s=>s.key===key);
+      if(!skin || saveData.money<skin.price || saveData.unlockedSkins[key]) return;
+      saveData.money -= skin.price;
+      saveData.unlockedSkins[key] = true;
+      equipSkin(key);
+      saveGame();
+      showShop();
+    }
+    function equipSkin(key){
+      if(!saveData.unlockedSkins[key]) return;
+      saveData.equippedSkin = key;
+      saveGame();
+      showShop();
+    }
+    function buyUpgrade(key){
+      let upg = UPGRADES.find(u=>u.key===key);
+      let level = saveData.upgrades[key]||0;
+      if(!upg || level>=upg.maxLevel) return;
+      let price = upg.price[level];
+      if(saveData.money<price) return;
+      saveData.money -= price;
+      saveData.upgrades[key] = level+1;
+      saveGame();
+      showShop();
+    }
+    function buyPet(key){
+      let pet = PETS.find(p=>p.key===key);
+      if(!pet || saveData.money<pet.price || saveData.pets[key]) return;
+      saveData.money -= pet.price;
+      saveData.pets[key] = true;
+      equipPet(key);
+      saveGame();
+      showShop();
+    }
+    function equipPet(key){
+      if(!saveData.pets[key]) return;
+      saveData.equippedPet = key;
+      saveGame();
+      showShop();
+    }
+
+    // ========== GAME LOOP & POWERS ==========
+
+function startGame() {
+  alert("IN startGame");
+  try {
+    console.log("startGame called, gameState=", gameState);
+
+    score = 0; speed = 4; frame = 0; moneyThisRun = 0;
+    alert("A: Before createPlayer");
+    player = createPlayer();
+    alert("B: After createPlayer");
+    obstacles = [];
+    orbs = [];
+    shieldActive = saveData.upgrades.shield > 0;
+    petShieldUsed = false;
+    autoShoutUsed = false;
+    thornsUsed = 0;
+    level = 1;
+    timeThisLevel = 0;
+    levelingUp = false;
+    shoutCooldown = 0;
+    dashCooldown = 0; dashActive = false; dashTimer = 0; dashDir = {x:0,y:0};
+    slowmoCooldown = 0; slowmoActive = false; slowmoTimer = 0;
+    bossStunTime = 0;
+    bossObj = null;
+    playerLives = 1 + (saveData.upgrades.extraLife||0);
+
+    alert("C: Before DOM updates");
+    overlay.innerHTML = '';
+    overlay.style.display = 'none';
+    let lup = document.getElementById('levelup-popup');
+    if (!lup) alert("DANGER: #levelup-popup not found!");
+    else lup.style.display = 'none';
+
+    alert("D: Before power bar DOM");
+    shoutBar.style.display = "block";
+    dashBar.style.display = "block";
+    slowmoBar.style.display = "block";
+
+    alert("E: Before updatePowerBars");
+    updatePowerBars();
+    alert("F: Before pet position");
+    petX = player.x-36; petY = player.y+player.size/2;
+    alert("G: Before final log and loop");
+
+    console.log("startGame called, gameState=", gameState);
+    requestAnimationFrame(loop);
+
+    alert("H: End of startGame");
+  } catch (e) {
+    alert("ERROR in startGame: " + e.message + "\n" + e.stack);
+  }
+}
+
+    function endGame() {
+      gameState = 'gameover';
+      setHighScore(score);
+      let milestoneMoney = Math.floor(score/1000)*15;
+      if (milestoneMoney > 0) moneyThisRun += milestoneMoney;
+      addMoney(moneyThisRun);
+      showOverlay(`
+        <h1>Game Over</h1>
+        <div class="score">Score: <b>${score}</b></div>
+        <div class="money">Coins: <b>+${moneyThisRun}</b></div>
+        <div class="score">High Score: <b>${saveData.highScore}</b></div>
+        <button class="button" onclick="window.showShop()">Shop & Upgrades</button>
+        <div class="desc">Press [Enter] or [Space] to shop</div>
+        ${saveData.bossBeaten ? `<div style="color:#0f0;font-size:1.2em;margin-top:1em;">🏆 Boss Beaten!<br>Special reward unlocked.</div>` : ""}
+      `);
+      shoutBar.style.display = "none";
+      dashBar.style.display = "none";
+      slowmoBar.style.display = "none";
+    }
+
+    function showLevelUpPopup(msg) {
+      let popup = document.getElementById('levelup-popup');
+      popup.style.display = 'flex';
+      popup.innerHTML = `<div style="font-size:3em;background:#222c;padding:1em 3em;border-radius:1.5em;box-shadow:0 0 24px #0ff8;text-align:center;color:#fff;">${msg}</div>`;
+      setTimeout(() => { popup.style.display = 'none'; }, 1600);
+    }
+
+    function bossLength(bossIndex) {
+      // Each boss: 20s + 2s per boss
+      return 20 + bossIndex * 2;
+    }
+
+    function updatePowerBars() {
+      // Shout
+      let frac = Math.max(0, Math.min(1, 1-shoutCooldown/10));
+      shoutFill.style.width = (232 * frac) + "px";
+      shoutBar.style.display = (gameState === 'playing' ? "block" : "none");
+      shoutLabel.innerHTML = shoutCooldown <= 0 ? "[S] SHOUT READY!" : `SHOUT: ${shoutCooldown.toFixed(1)}s`;
+      shoutFill.style.background = shoutCooldown <= 0 ? "#0ff" : "#0ff6";
+      // Dash
+      let hasDash = saveData.upgrades.hyperDash>0;
+      dashBar.style.display = hasDash && gameState==='playing' ? "block" : "none";
+      dashFill.style.width = (150 * Math.max(0, Math.min(1, 1-dashCooldown/4))) + "px";
+      dashLabel.innerHTML = dashCooldown <= 0 ? "[D] DASH!" : `DASH: ${dashCooldown.toFixed(1)}s`;
+      // Slowmo
+      let hasSlowmo = saveData.upgrades.slowmo>0;
+      slowmoBar.style.display = hasSlowmo && gameState==='playing' ? "block" : "none";
+      slowmoFill.style.width = (150 * Math.max(0, Math.min(1, 1-slowmoCooldown/7))) + "px";
+      slowmoLabel.innerHTML = slowmoCooldown <= 0 ? "[F] SLOWMO!" : `SLOWMO: ${slowmoCooldown.toFixed(1)}s`;
+    }
+    // ========== MAIN LOOP ==========
+
+    // function loop() {
+    //   alert("IN LOOP!");
+
+    //   console.log("loop running, state:", gameState);
+    //   ctx.fillStyle = "#0ff";
+    //   ctx.fillRect(0,0,50,50);
+
+    //   ctx.clearRect(0, 0, W, H);
+    //   // Background
+    //   if (gameState === 'playing') {
+    //     let grad = ctx.createRadialGradient(W/2, H/2, 40, W/2, H/2, H/1.2);
+    //     grad.addColorStop(0, `rgba(0,255,255,0.07)`);
+    //     grad.addColorStop(1, `rgba(20,24,60,0.9)`);
+    //     ctx.fillStyle = grad;
+    //     ctx.fillRect(0,0,W,H);
+    //   }
+
+    //   if (gameState === 'start') {
+    //     showOverlay(`
+    //       <h1>NEON DASH: ULTIMATE</h1>
+    //       <div style="font-size:1.3em;margin-top:0.7em;">
+    //         50 Levels. Boss every 5.<br>
+    //         Shop for skins, upgrades, and pets!<br>
+    //         <b>[Arrow keys]</b> Move | <b>[S]</b> Shout | <b>[D]</b> Dash | <b>[F]</b> Slowmo<br>
+    //         <b>[Space]</b> or <b>[Enter]</b> to start.
+    //       </div>
+    //       <div class="score" style="margin-top:2em;">High Score: <b>${saveData.highScore}</b></div>
+    //       <div class="money" style="font-size:1.5em;">Your Coins: <b>${saveData.money}</b></div>
+    //       <button class="button" onclick="showShop()">SHOP</button>
+    //       ${saveData.bossBeaten ? `<div style="color:#0f0;font-size:1.2em;margin-top:1em;">🏆 Boss Beaten!<br>Special reward unlocked.</div>` : ""}
+    //     `);
+    //     shoutBar.style.display = "none"; dashBar.style.display="none"; slowmoBar.style.display="none";
+    //     return;
+    //   }
+    //   if (gameState === 'playing') {
+    //     overlay.style.display = 'none';
+    //     // Player movement, dash, slowmo
+    //     let moveSpeed = 8 + (saveData.upgrades.speed||0)*1;
+    //     if (dashActive) {
+    //       player.x += dashDir.x * 18;
+    //       player.y += dashDir.y * 18;
+    //       dashTimer -= 1/60;
+    //       if (dashTimer <= 0) { dashActive=false; }
+    //     } else {
+    //       let actualSpeed = moveSpeed * (slowmoActive ? 0.38 : 1);
+    //       if (input.left) player.x -= actualSpeed;
+    //       if (input.right) player.x += actualSpeed;
+    //       if (input.up) player.y -= actualSpeed;
+    //       if (input.down) player.y += actualSpeed;
+    //     }
+    //     player.x = Math.max(0, Math.min(W-player.size, player.x));
+    //     player.y = Math.max(0, Math.min(H-player.size, player.y));
+
+    //     // --- Level/Boss logic ---
+    //     let isBoss = (level % 5 === 0);
+    //     let bossIndex = Math.floor(level/5);
+    //     let currentSpeed = speed + (level-1)*0.45 + (isBoss ? 2+bossIndex*0.24 : 0);
+    //     let obsRate = Math.max(30, 100 - level*1.2);
+    //     let orbRate = Math.max(90, 220 - Math.floor(level*2.4) - (saveData.upgrades.orbValue||0)*10);
+
+    //     // Obstacles
+    //     if (isBoss) {
+    //       handleBoss(bossIndex, isBoss && bossStunTime>0);
+    //     } else {
+    //       if (frame % obsRate === 0) {
+    //         obstacles.push(spawnObstacle());
+    //       }
+    //     }
+
+    //     // Orbs
+    //     if (frame % orbRate === 0) {
+    //       orbs.push(spawnOrb());
+    //     }
+
+    //     // Move obstacles
+    //     for (let i=obstacles.length-1; i>=0; --i) {
+    //       let o = obstacles[i];
+    //       if (isBoss && o.isBoss) continue; // boss block
+    //       o.y += currentSpeed * (slowmoActive?0.5:1);
+    //       drawNeonRect(o.x, o.y, o.w, o.h, o.color, o.glow);
+    //       if (rectsCollide(player, o)) {
+    //         // Pet Bouncer: block first hit per level
+    //         if(saveData.equippedPet==="bouncer" && !petShieldUsed){
+    //           petShieldUsed=true; obstacles.splice(i,1); continue;
+    //         }
+    //         // Shield
+    //         if (shieldActive) {
+    //           shieldActive = false; obstacles.splice(i,1); continue;
+    //         }
+    //         // Thorns upgrade: reflect one boss projectile per boss
+    //         if(isBoss && saveData.upgrades.thorns>0 && thornsUsed<saveData.upgrades.thorns){
+    //           thornsUsed++; obstacles.splice(i,1); continue;
+    //         }
+    //         // Extra life upgrade
+    //         if(playerLives>1){
+    //           playerLives--; obstacles.splice(i,1); continue;
+    //         }
+    //         // Auto-shout upgrade
+    //         if(saveData.upgrades.autoShout>0 && !autoShoutUsed){
+    //           autoShoutUsed=true; tryShout(); obstacles.splice(i,1); continue;
+    //         }
+    //         // You die!
+    //         player.alive = false;
+    //       }
+    //       if (o.y > H) obstacles.splice(i,1);
+    //     }
+
+    //     // Move orbs
+    //     for (let i=orbs.length-1; i>=0; --i) {
+    //       let orb = orbs[i];
+    //       // Magnet upgrade: attracts orbs toward player
+    //       let magnetLv = saveData.upgrades.magnet || 0;
+    //       let magnetRange = magnetLv?90+magnetLv*30:0;
+    //       if(magnetLv && dist(player.x+player.size/2,player.y+player.size/2,orb.x+orb.size/2,orb.y+orb.size/2)<magnetRange){
+    //         orb.x += (player.x-orb.x)*0.1*magnetLv;
+    //         orb.y += (player.y-orb.y)*0.1*magnetLv;
+    //       }
+    //       // Pet RoboFox: stronger magnet
+    //       if(saveData.equippedPet==="robofox"){
+    //         let dx=(petX+22)-(orb.x+orb.size/2),dy=(petY+22)-(orb.y+orb.size/2);
+    //         let dist2=Math.sqrt(dx*dx+dy*dy);
+    //         if(dist2<140){
+    //           orb.x += (player.x-orb.x)*0.14;
+    //           orb.y += (player.y-orb.y)*0.14;
+    //         }
+    //       }
+    //       orb.y += currentSpeed * 0.85 * (slowmoActive?0.7:1);
+    //       drawNeonCircle(orb.x + orb.size/2, orb.y + orb.size/2, orb.size/2, orb.color, orb.glow);
+    //       if (rectsCollide(player, orb, orb.size, orb.size)) {
+    //         let baseValue = 10 + 5*(saveData.upgrades.orbValue||0);
+    //         if(orb.double) baseValue *= 2;
+    //         if(saveData.equippedPet==="starpup") baseValue = Math.floor(baseValue*1.25);
+    //         moneyThisRun += baseValue;
+    //         score += orb.double ? 2 : 1;
+    //         orbs.splice(i,1);
+    //       } else if (orb.y > H) {
+    //         orbs.splice(i,1);
+    //       }
+    //     }
+
+    //     // Pet follows
+    //     if(saveData.equippedPet){
+    //       let pet = PETS.find(p=>p.key===saveData.equippedPet);
+    //       petX = lerp(petX, player.x-36, 0.13);
+    //       petY = lerp(petY, player.y+player.size/2, 0.13);
+    //       pet.draw(ctx, petX+player.size/2, petY+player.size/2);
+    //     }
+
+    //     // Player
+    //     let skin = getActiveSkin();
+    //     drawNeonRect(player.x, player.y, player.size, player.size, skin.color, skin.glow);
+    //     if (shieldActive) {
+    //       ctx.save();
+    //       ctx.strokeStyle = "#fff";
+    //       ctx.lineWidth = 5;
+    //       ctx.shadowColor = "#fff";
+    //       ctx.shadowBlur = 10;
+    //       ctx.strokeRect(player.x-3, player.y-3, player.size+6, player.size+6);
+    //       ctx.restore();
+    //     }
+    //     // Extra life HUD
+    //     if(playerLives>1){
+    //       drawNeonText(`LIVES: ${playerLives}`, W-100, 130, 20, "#fff","#0ff8","right");
+    //     }
+
+    //     // Update powers
+    //     if (shoutCooldown > 0) shoutCooldown = Math.max(0, shoutCooldown - 1/60);
+    //     if (dashCooldown > 0) dashCooldown = Math.max(0, dashCooldown - 1/60);
+    //     if (slowmoCooldown > 0) slowmoCooldown = Math.max(0, slowmoCooldown - 1/60);
+    //     if (slowmoActive) { slowmoTimer -= 1/60; if(slowmoTimer<=0){ slowmoActive=false; } }
+    //     updatePowerBars();
+
+    //     // Level up
+    //     if (player.alive) {
+    //       score += 1;
+    //       frame++;
+    //       timeThisLevel += 1/60;
+    //       if (!levelingUp && timeThisLevel >= (isBoss ? bossLength(bossIndex) : LEVEL_TIME)) {
+    //         if (isBoss && level === 50) {
+    //           setTimeout(() => {
+    //             saveData.bossBeaten = true;
+    //             addMoney(bossReward);
+    //             saveGame();
+    //             showOverlay(`
+    //               <h1>🏆 BOSS DEFEATED!</h1>
+    //               <div style="font-size:1.5em;color:#0f0;margin:1em 0;">You beat all bosses!</div>
+    //               <div class="money">Boss Bonus: <b>+${bossReward}</b></div>
+    //               <button class="button" onclick="window.showShop()">SHOP & UPGRADES</button>
+    //               <div class="desc">Press [Enter] or [Space] for shop</div>
+    //             `);
+    //             gameState = "shop";
+    //             shoutBar.style.display = "none";
+    //           }, 1400);
+    //           return;
+    //         }
+    //         levelingUp = true;
+    //         setTimeout(() => {
+    //           level++;
+    //           timeThisLevel = 0;
+    //           obstacles = [];
+    //           orbs = [];
+    //           levelingUp = false;
+    //           bossObj = null;
+    //           bossStunTime = 0;
+    //           petShieldUsed=false;
+    //           thornsUsed=0;
+    //         }, 1600);
+    //         showLevelUpPopup((level % 5 === 0) ? "BOSS LEVEL" : `LEVEL ${level}`);
+    //       }
+    //     } else {
+    //       endGame();
+    //       return;
+    //     }
+    //     // HUD
+    //     drawNeonText(`LEVEL ${level}/50`, W/2, 54, 32, isBoss ? '#f0f' : '#0ff', isBoss ? '#f0f8' : '#0ff8');
+    //     let secs = Math.max(0, Math.ceil((isBoss ? bossLength(bossIndex) : LEVEL_TIME) - timeThisLevel));
+    //     drawNeonText(`${isBoss ? "BOSS" : "TIME"}: ${secs}s`, W-100, 54, 22, isBoss ? '#f0f' : '#ff0', isBoss ? '#f0f8' : '#ff08', 'right');
+    //     drawNeonText(`💰 ${saveData.money+moneyThisRun}`, W - 70, 92, 23, '#ff0', '#ff08', 'right');
+    //     if (shieldActive) drawNeonText(`SHIELD`, 82, 54, 18, '#fff', '#fff8');
+    //     drawNeonText(`SCORE: ${score}`, W/2, H-16, 22, '#0ff', '#0ff8');
+    //     // Power HUD handled by updatePowerBars()
+
+    //     requestAnimationFrame(loop);
+    //   }
+    // }
+function loop() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Log player object
+  console.log("Player at loop:", player);
+
+  // Test draw code
+  try {
+    if (
+      player &&
+      typeof player.x === "number" &&
+      typeof player.y === "number" &&
+      typeof player.size === "number"
+    ) {
+      ctx.fillStyle = "cyan";
+      ctx.fillRect(player.x, player.y, player.size, player.size);
+    } else {
+      ctx.fillStyle = "red";
+      ctx.font = "24px sans-serif";
+      ctx.fillText("NO PLAYER!", 100, 100);
+    }
+  } catch (e) {
+    ctx.fillStyle = "red";
+    ctx.font = "24px sans-serif";
+    ctx.fillText("DRAW ERROR!", 100, 100);
+    console.error("DRAW ERROR", e);
+  }
+
+  requestAnimationFrame(loop);
+}
+
+    function handleBoss(bossIndex, stunned) {
+      if (!bossObj) {
+        bossObj = {
+          x: W/2-120, y: 150, w: 240, h: 44,
+          vx: 5 + bossIndex*1.1, dir: 1, t: 0,
+          color: "#a3f", glow: "#fff8", isBoss: true,
+          fireCooldown: 0
+        };
+        obstacles.push(bossObj);
+        bossTimer = 0;
+      }
+      bossObj.t += 1/60;
+      let speed = bossObj.vx * (stunned ? 0 : bossObj.dir);
+      bossObj.x += speed;
+      if (bossObj.x < 30 || bossObj.x + bossObj.w > W-30) bossObj.dir *= -1;
+      // Fire bullets every 1.1s minus difficulty, but never faster than 0.5s
+      if (!stunned) bossObj.fireCooldown -= 1/60;
+      if (!stunned && bossObj.fireCooldown <= 0) {
+        bossObj.fireCooldown = Math.max(0.5, 1.1 - bossIndex*0.08);
+        let bx = bossObj.x + bossObj.w/2;
+        obstacles.push({
+          x: bx-12, y: bossObj.y+bossObj.h, w: 24, h: 28,
+          color: "#ff0", glow: "#fff8", vy: 13 + bossIndex*2.1,
+        });
+      }
+      // Draw boss
+      drawNeonRect(bossObj.x, bossObj.y, bossObj.w, bossObj.h, bossObj.color, bossObj.glow);
+      drawNeonText("BOSS", bossObj.x+bossObj.w/2, bossObj.y+bossObj.h/2+10, 28, "#fff", "#a3f8");
+      // Boss projectiles
+      for (let i=obstacles.length-1; i>=0; --i) {
+        let o = obstacles[i];
+        if (!o.isBoss && o.vy) {
+          o.y += o.vy;
+          drawNeonRect(o.x, o.y, o.w, o.h, o.color, o.glow);
+          if (rectsCollide(player, o)) {
+            // Pet Bouncer
+            if(saveData.equippedPet==="bouncer" && !petShieldUsed){
+              petShieldUsed=true; obstacles.splice(i,1); continue;
+            }
+            // Shield
+            if (shieldActive) {
+              shieldActive = false; obstacles.splice(i,1); continue;
+            }
+            // Thorns
+            if(saveData.upgrades.thorns>0 && thornsUsed<saveData.upgrades.thorns){
+              thornsUsed++; obstacles.splice(i,1); continue;
+            }
+            // Extra life
+            if(playerLives>1){
+              playerLives--; obstacles.splice(i,1); continue;
+            }
+            // Auto-shout
+            if(saveData.upgrades.autoShout>0 && !autoShoutUsed){
+              autoShoutUsed=true; tryShout(); obstacles.splice(i,1); continue;
+            }
+            // You die!
+            player.alive = false;
+          }
+          if (o.y > H) obstacles.splice(i,1);
+        }
+      }
+      // Stun
+      if (stunned) {
+        drawNeonText("STUNNED!", bossObj.x+bossObj.w/2, bossObj.y+bossObj.h+20, 20, "#fff", "#fff8");
+      }
+      if (bossStunTime > 0) bossStunTime -= 1/60;
+    }
+
+    // --- SHOUT / DASH / SLOWMO ABILITIES ---
+    function tryShout() {
+      if (shoutCooldown > 0) return;
+      // Remove all obstacles except boss block
+      obstacles = obstacles.filter(o => o.isBoss);
+      // Stun boss
+      if (bossObj) {
+        let power = 2.0 + (saveData.upgrades.shoutPower||0)*0.5;
+        bossStunTime = power;
+      }
+      shoutCooldown = 10;
+      updatePowerBars();
+      // Flash
+      let popup = document.getElementById('levelup-popup');
+      popup.style.display = 'flex';
+      popup.innerHTML = `<div style="font-size:2.5em;background:#0ff4;padding:1em 2em;border-radius:1em;box-shadow:0 0 24px #fffa;text-align:center;color:#222;">SHOUT!</div>`;
+      setTimeout(() => { popup.style.display = 'none'; }, 600);
+    }
+
+    function tryDash() {
+      if((saveData.upgrades.hyperDash||0)<1) return;
+      if (dashCooldown > 0 || dashActive) return;
+      let dx = (input.left?-1:0)+(input.right?1:0);
+      let dy = (input.up?-1:0)+(input.down?1:0);
+      if(dx===0&&dy===0) return;
+      let mag = Math.sqrt(dx*dx+dy*dy); if(mag>0){dx/=mag;dy/=mag;}
+      dashDir = {x:dx, y:dy};
+      dashActive = true;
+      dashTimer = 0.21 + 0.11*(saveData.upgrades.hyperDash||0);
+      dashCooldown = 4;
+      updatePowerBars();
+    }
+    function trySlowmo() {
+      if((saveData.upgrades.slowmo||0)<1) return;
+      if (slowmoCooldown > 0 || slowmoActive) return;
+      slowmoActive = true;
+      slowmoTimer = 1.5 + (saveData.upgrades.slowmo||0)*0.8;
+      slowmoCooldown = 7;
+      updatePowerBars();
+    }
+
+    // --- Collision Helper ---
+    function rectsCollide(a, b, bw = b.w, bh = b.h) {
+      return (
+        a.x < b.x + bw &&
+        a.x + a.size > b.x &&
+        a.y < b.y + bh &&
+        a.y + a.size > b.y
+      );
+    }
+    function dist(x1,y1,x2,y2){ return Math.hypot(x1-x2,y1-y2); }
+
+    // --- Start main menu
+    showOverlay(`
+      <h1>NEON DASH: ULTIMATE EDITION</h1>
+      <div class="desc">
+        <b>All features enabled.</b><br>
+        50 Levels, bosses, upgrades, skins, PETS!<br>
+        Arrow keys to move. [S]=Shout, [D]=Dash, [F]=Slowmo.<br>
+        Go to <b>SHOP</b> for pets, skins, upgrades.
+      </div>
+      <div class="desc">Press <b>[Space]</b> to play, or click <b>Shop</b>.</div>
+      <button class="button" onclick="showShop()">SHOP</button>
+    `);
+  window.startGame = startGame;
+  window.showShop = showShop;
+console.log("Script loaded. startGame is", typeof startGame);
+window.testClick = function() { console.log("window.testClick ran"); }
+  
+  </script>
+</body>
+</html>
