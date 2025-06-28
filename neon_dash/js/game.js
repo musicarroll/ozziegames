@@ -361,6 +361,7 @@ window.addEventListener('keyup', e => {
   if(e.key==='ArrowDown') input.down=false;
 });
 
-export { tryShout, tryDash, trySlowmo, setGameState };
+// Export gameplay utility functions for other modules
+export { tryShout, tryDash, trySlowmo };
 
 requestAnimationFrame(loop);
