@@ -4,6 +4,7 @@ import { showOverlay, startGame } from './game.js';
 let shopTab = 'skins';
 
 export function showShop(tab){
+  console.log('showShop called with tab:', tab);
   shopTab = tab || shopTab || 'skins';
   let html = `
     <div class="shop-title">SHOP</div>
@@ -106,7 +107,12 @@ export function showShop(tab){
       }
     }
     const playBtn = document.getElementById('shop-play-btn');
-    if(playBtn) playBtn.onclick = () => startGame();
+    if(playBtn){
+      console.log('Play button found, attaching click handler');
+      playBtn.onclick = () => startGame();
+    } else {
+      console.log('Play button not found');
+    }
   },30);
 }
 

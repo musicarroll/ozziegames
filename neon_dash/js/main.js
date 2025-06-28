@@ -1,6 +1,8 @@
 import { startGame, showOverlay } from './game.js';
 import { showShop } from './shop.js';
 
+console.log('main.js loaded');
+
 window.startGame = startGame;
 window.showShop = showShop;
 
