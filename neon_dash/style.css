@@ -1,7 +1,7 @@
 html, body { height: 100%; margin: 0; overflow: hidden; background: #121212; }
 body { display: flex; align-items: center; justify-content: center; height: 100vh; }
 canvas { background: radial-gradient(circle at 50% 50%, #191970 0%, #121212 100%); box-shadow: 0 0 40px #0ff8, 0 0 160px #0ff4; border-radius: 24px; display: block; position: relative; z-index: 1; }
-#overlay { position: absolute; left: 0; top: 0; width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; flex-direction: column; z-index: 10; color: #0ff; font-family: 'Segoe UI', 'Arial', sans-serif; text-shadow: 0 0 16px #0ff8; pointer-events: none; user-select: none; }
+#overlay { position: absolute; left: 0; top: 0; width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; flex-direction: column; z-index: 10; color: #0ff; font-family: 'Segoe UI', 'Arial', sans-serif; text-shadow: 0 0 16px #0ff8; pointer-events: auto; user-select: none; }
 .button { margin-top: 1.3em; background: #0ff3; border: 2px solid #0ff; color: #0ff; border-radius: 1em; font-size: 1.3em; padding: 0.5em 2em; cursor: pointer; pointer-events: auto; transition: background 0.2s; font-family: inherit; }
 .button:hover { background: #0ff6; }
 h1 { font-size: 3em; margin: 0.1em 0; letter-spacing: 0.1em; }
