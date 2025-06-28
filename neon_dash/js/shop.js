@@ -1,10 +1,13 @@
 import { SKINS, UPGRADES, PETS, saveData, saveGame } from './data.js';
-import { showOverlay, startGame } from './game.js';
+import { showOverlay, startGame, setGameState } from './game.js';
 
 let shopTab = 'skins';
 
 export function showShop(tab){
+  console.log('showShop called with tab:', tab);
   shopTab = tab || shopTab || 'skins';
+  setGameState('shop');
+  console.log('gameState after showShop:', 'shop');
   let html = `
     <div class="shop-title">SHOP</div>
     <div class="shop-tabs">
@@ -106,7 +109,12 @@ export function showShop(tab){
       }
     }
     const playBtn = document.getElementById('shop-play-btn');
-    if(playBtn) playBtn.onclick = () => startGame();
+    if(playBtn){
+      console.log('Play button found, attaching click handler');
+      playBtn.onclick = () => startGame();
+    } else {
+      console.log('Play button not found');
+    }
   },30);
 }
 
