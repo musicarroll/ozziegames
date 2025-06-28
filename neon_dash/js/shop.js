@@ -1,11 +1,13 @@
 import { SKINS, UPGRADES, PETS, saveData, saveGame } from './data.js';
-import { showOverlay, startGame } from './game.js';
+import { showOverlay, startGame, setGameState } from './game.js';
 
 let shopTab = 'skins';
 
 export function showShop(tab){
   console.log('showShop called with tab:', tab);
   shopTab = tab || shopTab || 'skins';
+  setGameState('shop');
+  console.log('gameState after showShop:', 'shop');
   let html = `
     <div class="shop-title">SHOP</div>
     <div class="shop-tabs">

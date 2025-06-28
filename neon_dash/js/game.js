@@ -37,6 +37,12 @@ export function showOverlay(html){
   // style was modified elsewhere at runtime.
   overlay.style.pointerEvents = 'auto';
   console.log('overlay pointer events after showOverlay:', overlay.style.pointerEvents);
+
+}
+
+export function setGameState(state){
+  gameState = state;
+  console.log('setGameState:', gameState);
 }
 
 export function createPlayer(){
@@ -45,6 +51,9 @@ export function createPlayer(){
 
 export function startGame(){
   console.log('startGame called');
+
+  setGameState('playing');
+
   score = 0; speed = 4; frame = 0; moneyThisRun = 0;
   player = createPlayer();
   obstacles = []; orbs = [];
@@ -352,6 +361,6 @@ window.addEventListener('keyup', e => {
   if(e.key==='ArrowDown') input.down=false;
 });
 
-export { tryShout, tryDash, trySlowmo };
+export { tryShout, tryDash, trySlowmo, setGameState };
 
 requestAnimationFrame(loop);
