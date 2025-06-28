@@ -31,6 +31,9 @@ let bossObj = null; let bossTimer = 0;
 export function showOverlay(html){
   overlay.innerHTML = html;
   overlay.style.display = 'flex';
+  // Ensure the overlay can receive pointer events even if the
+  // style was modified elsewhere at runtime.
+  overlay.style.pointerEvents = 'auto';
 }
 
 export function createPlayer(){
