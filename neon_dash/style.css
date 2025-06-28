@@ -1,0 +1,33 @@
+html, body { height: 100%; margin: 0; overflow: hidden; background: #121212; }
+body { display: flex; align-items: center; justify-content: center; height: 100vh; }
+canvas { background: radial-gradient(circle at 50% 50%, #191970 0%, #121212 100%); box-shadow: 0 0 40px #0ff8, 0 0 160px #0ff4; border-radius: 24px; display: block; position: relative; z-index: 1; }
+#overlay { position: absolute; left: 0; top: 0; width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; flex-direction: column; z-index: 10; color: #0ff; font-family: 'Segoe UI', 'Arial', sans-serif; text-shadow: 0 0 16px #0ff8; pointer-events: none; user-select: none; }
+.button { margin-top: 1.3em; background: #0ff3; border: 2px solid #0ff; color: #0ff; border-radius: 1em; font-size: 1.3em; padding: 0.5em 2em; cursor: pointer; pointer-events: auto; transition: background 0.2s; font-family: inherit; }
+.button:hover { background: #0ff6; }
+h1 { font-size: 3em; margin: 0.1em 0; letter-spacing: 0.1em; }
+.score, .money { font-size: 2em; margin-top: 1em; }
+.shop-title { font-size: 2.1em; margin-bottom: 0.5em; color: #0ff; }
+.shop-tabs { display:flex; gap:1.2em; margin-bottom:1em; justify-content:center;}
+.shop-tab { font-size:1.15em; color:#0ff; background:#161b; border-radius:1em 1em 0 0; padding:0.2em 1.5em; cursor:pointer; pointer-events:auto; border-bottom:2px solid transparent;}
+.shop-tab.selected { font-weight:bold; border-bottom:3px solid #0ff; background:#222b;}
+.shop-list { display: flex; flex-wrap: wrap; gap: 2em; margin-top: 1em; justify-content: center; }
+.shop-item { background: #222b; border-radius: 1.3em; box-shadow: 0 0 16px #0ff4; padding: 1em 2em; text-align: center; color: #fff; pointer-events: auto; min-width: 170px; margin-bottom: 1em;}
+.shop-item.selected { outline: 3px solid #0ff; box-shadow: 0 0 24px #0ff8; }
+.shop-button { margin-top: 1em; background: #111c; border: 1.5px solid #0ff; border-radius: 1em; color: #0ff; padding: 0.3em 1em; font-size: 1em; cursor: pointer; pointer-events: auto; transition: background 0.2s; font-family: inherit; }
+.shop-button:disabled { background: #4448; color: #888; border: 1.5px solid #888; cursor: not-allowed; }
+.shop-button:hover:not(:disabled) { background: #0ff2; }
+.shop-price { font-size: 1.1em; color: #ff0; margin-top: 0.5em; }
+.skin-preview { margin: 0 auto 0.7em auto; display: block; width: 44px; height: 44px; border-radius: 12px; box-shadow: 0 0 12px #fff8;}
+.pet-preview { margin: 0 auto 0.7em auto; display: block; width: 44px; height: 44px; border-radius: 12px; box-shadow: 0 0 14px #fff8; background: #222;}
+.upgrade-level { font-size: 1.1em; color: #0f0; margin-top: 0.2em; }
+.shop-money { margin-bottom: 1em; font-size: 1.5em; color: #ff0; }
+.desc { font-size: 1em; color: #aaa; margin-top: 0.6em; }
+.level-up-popup { position: absolute; left:0;top:0;width:100vw;height:100vh;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:50;}
+.shout-bar-bg { position:absolute;left:50%;transform:translateX(-50%); top:12px;width:240px;height:18px;background:#1136;border-radius:12px;box-shadow:0 0 8px #0ff8;z-index:2;border:1.5px solid #0ff; display:flex;align-items:center;justify-content:center;}
+.shout-bar-fill { height:14px;background:#0ffb;border-radius:9px;transition:width 0.2s;box-shadow:0 0 8px #0ffb;}
+.shout-bar-label { position:absolute;left:50%;top:0;width:240px;text-align:center;font-size:1em;color:#fff;text-shadow:0 0 8px #0ff6; user-select:none; pointer-events:none; z-index:3;}
+.dash-bar-bg, .slowmo-bar-bg { position:absolute;left:50%;transform:translateX(-50%);top:38px;width:160px;height:15px;background:#1356;border-radius:8px;box-shadow:0 0 6px #0cf8;z-index:2;border:1.2px solid #0cf; display:flex;align-items:center;justify-content:center;}
+.dash-bar-fill { height:11px;background:#0cf8;border-radius:7px;transition:width 0.2s;box-shadow:0 0 8px #0cf8;}
+.dash-bar-label { position:absolute;left:50%;top:38px;width:160px;text-align:center;font-size:0.95em;color:#fff;text-shadow:0 0 8px #0cf6; user-select:none; pointer-events:none; z-index:3;}
+.slowmo-bar-fill { height:11px;background:#fa0b;border-radius:7px;transition:width 0.2s;box-shadow:0 0 8px #fa0b;}
+.slowmo-bar-label { position:absolute;left:50%;top:56px;width:160px;text-align:center;font-size:0.95em;color:#fff;text-shadow:0 0 8px #fa08; user-select:none; pointer-events:none; z-index:3;}
