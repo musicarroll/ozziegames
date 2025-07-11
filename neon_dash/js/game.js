@@ -323,19 +323,6 @@ function loop(){
     drawNeonText(ctx,`💰 ${saveData.money+moneyThisRun}`,W-70,92,23,'#ff0','#ff08','right');
     if(shieldActive) drawNeonText(ctx,'SHIELD',82,54,18,'#fff','#fff8');
     drawNeonText(ctx,`SCORE: ${score}`,W/2,H-16,22,'#0ff','#0ff8');
-  } else if(gameState==='start') {
-    showOverlay(`
-      <h1>NEON DASH: ULTIMATE EDITION</h1>
-      <div class="desc">
-        <b>All features enabled.</b><br>
-        50 Levels, bosses, upgrades, skins, PETS!<br>
-        Arrow keys to move. [S]=Shout, [D]=Dash, [F]=Slowmo.<br>
-        Go to <b>SHOP</b> for pets, skins, upgrades.
-      </div>
-      <div class="desc">Press <b>[Space]</b> to play, or click <b>Shop</b>.</div>
-      <button class="button" onclick="showShop()">SHOP</button>
-    `);
-    shoutBar.style.display='none'; dashBar.style.display='none'; slowmoBar.style.display='none';
   }
   requestAnimationFrame(loop);
 }
