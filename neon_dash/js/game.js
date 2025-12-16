@@ -1,10 +1,7 @@
-import { SKINS, UPGRADES, PETS, saveData, addMoney, setHighScore } from './data.js';
-import { drawNeonRect, drawNeonCircle, drawNeonText } from './render.js';
-
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
-export const W = canvas.width;
-export const H = canvas.height;
+const W = canvas.width;
+const H = canvas.height;
 
 const overlay = document.getElementById('overlay');
 const shoutBar = document.getElementById('shout-bar');
@@ -27,8 +24,9 @@ let input = { left:false, right:false, up:false, down:false };
 let petX = 0, petY = 0;
 const LEVEL_TIME = 22;
 let bossObj = null; let bossTimer = 0;
+let lastState = null;
 
-export function showOverlay(html){
+function showOverlay(html){
   console.log('showOverlay called');
   console.log('overlay html:', html);
   overlay.innerHTML = html;
@@ -40,16 +38,16 @@ export function showOverlay(html){
 
 }
 
-export function setGameState(state){
+function setGameState(state){
   gameState = state;
   console.log('setGameState:', gameState);
 }
 
-export function createPlayer(){
+function createPlayer(){
   return { x: W/2-22, y: H-96, size: 44, alive: true };
 }
 
-export function startGame(){
+function startGame(){
   console.log('startGame called');
 
   setGameState('playing');
@@ -74,14 +72,14 @@ export function startGame(){
   requestAnimationFrame(loop);
 }
 
-export function showLevelUpPopup(msg){
+function showLevelUpPopup(msg){
   const popup = document.getElementById('levelup-popup');
   popup.style.display = 'flex';
   popup.innerHTML = `<div style="font-size:3em;background:#222c;padding:1em 3em;border-radius:1.5em;box-shadow:0 0 24px #0ff8;text-align:center;color:#fff;">${msg}</div>`;
   setTimeout(()=>{ popup.style.display='none'; },1600);
 }
 
-export function updatePowerBars(){
+function updatePowerBars(){
   const frac = Math.max(0, Math.min(1, 1-shoutCooldown/10));
   shoutFill.style.width = (232*frac)+"px";
   shoutBar.style.display = (gameState==='playing'?'block':'none');
@@ -162,7 +160,7 @@ function trySlowmo(){
   updatePowerBars();
 }
 
-export function endGame(){
+function endGame(){
   gameState='gameover';
   setHighScore(score);
   const milestone = Math.floor(score/1000)*15;
@@ -324,6 +322,27 @@ function loop(){
     if(shieldActive) drawNeonText(ctx,'SHIELD',82,54,18,'#fff','#fff8');
     drawNeonText(ctx,`SCORE: ${score}`,W/2,H-16,22,'#0ff','#0ff8');
   }
+  if(gameState==='start') {
+    if (lastState !== 'start') {
+      showOverlay(`
+        <h1>NEON DASH: ULTIMATE EDITION</h1>
+        <div class="desc">
+          <b>All features enabled.</b><br>
+          50 Levels, bosses, upgrades, skins, PETS!<br>
+          Arrow keys to move. [S]=Shout, [D]=Dash, [F]=Slowmo.<br>
+          Go to <b>SHOP</b> for pets, skins, upgrades.
+        </div>
+        <div class="desc">Press <b>[Space]</b> to play, or click <b>Shop</b>.</div>
+        <button class="button" id="start-shop-btn">SHOP</button>
+      `);
+      setTimeout(() => {
+        const btn = document.getElementById('start-shop-btn');
+        if (btn) btn.onclick = () => window.showShop();
+      }, 0);
+    }
+    shoutBar.style.display='none'; dashBar.style.display='none'; slowmoBar.style.display='none';
+  }
+  lastState = gameState;
   requestAnimationFrame(loop);
 }
 
@@ -349,6 +368,11 @@ window.addEventListener('keyup', e => {
 });
 
 // Export gameplay utility functions for other modules
-export { tryShout, tryDash, trySlowmo };
+window.tryShout = tryShout;
+window.tryDash = tryDash;
+window.trySlowmo = trySlowmo;
+window.showOverlay = showOverlay;
+window.startGame = startGame;
+window.setGameState = setGameState;
 
 requestAnimationFrame(loop);

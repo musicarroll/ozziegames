@@ -4,3 +4,4 @@ Session Notes - Neon Dash Fixes
 - Inlined module exports replaced with locals and window bindings for entry points (startGame, showShop, showOverlay, tryShout/tryDash/trySlowmo) to keep inline handlers functional.
 - Fixed start overlay re-rendering loop that wiped the Shop button; now only renders on entering start state and wires an explicit click handler to the Shop button.
 - Shop UI now responds when loaded locally; awaiting player feedback for deeper gameplay validation.
+- After a remote overwrite, re-applied the above fixes to keep the local file-based build working.
