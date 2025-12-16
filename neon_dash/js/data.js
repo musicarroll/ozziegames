@@ -1,4 +1,4 @@
-export const SKINS = [
+const SKINS = [
   { key: "cyan", name: "Cyan", color: "#0ff", glow: "#0ff8", price: 0 },
   { key: "red",  name: "Red", color: "#f33", glow: "#f338", price: 150 },
   { key: "green", name: "Green", color: "#3f3", glow: "#3f38", price: 150 },
@@ -7,7 +7,7 @@ export const SKINS = [
   { key: "rainbow", name: "Rainbow", color: "rainbow", glow: "#fff8", price: 800 }
 ];
 
-export const UPGRADES = [
+const UPGRADES = [
   { key: "speed", name: "Move Speed", desc: "+1 max speed per level", price: [120,220,370], maxLevel: 3 },
   { key: "orbValue", name: "Orb Value", desc: "+5 money per orb per level", price: [100,180,300], maxLevel: 3 },
   { key: "shield", name: "Shield", desc: "Start with a shield (1 hit)", price: [240], maxLevel: 1 },
@@ -21,7 +21,7 @@ export const UPGRADES = [
   { key: "shoutPower", name: "Shout+", desc: "Shout clears projectiles/boss longer", price: [400,750,1100], maxLevel: 3 }
 ];
 
-export const PETS = [
+const PETS = [
   {
     key: "robofox", name: "RoboFox", price: 400,
     desc: "Auto-collects nearby orbs (magnet)",
@@ -78,7 +78,7 @@ export const PETS = [
   }
 ];
 
-export const defaultSave = {
+const defaultSave = {
   money: 0,
   highScore: 0,
   unlockedSkins: { cyan: true },
@@ -90,9 +90,9 @@ export const defaultSave = {
 };
 for (const u of UPGRADES) defaultSave.upgrades[u.key] = 0;
 
-export let saveData = null;
+let saveData = null;
 
-export function loadSave(){
+function loadSave(){
   try {
     const data = JSON.parse(localStorage.getItem("neonDashSave") || "null");
     if(!data) throw new Error("No data");
@@ -106,16 +106,16 @@ export function loadSave(){
   }
 }
 
-export function saveGame(){
+function saveGame(){
   localStorage.setItem("neonDashSave", JSON.stringify(saveData));
 }
 
-export function addMoney(amount){
+function addMoney(amount){
   saveData.money += amount;
   saveGame();
 }
 
-export function setHighScore(score){
+function setHighScore(score){
   if(score > saveData.highScore){
     saveData.highScore = score;
     saveGame();

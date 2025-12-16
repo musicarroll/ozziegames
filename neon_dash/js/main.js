@@ -1,10 +1,9 @@
-import { startGame, showOverlay } from './game.js';
-import { showShop } from './shop.js';
-
 console.log('main.js loaded');
 
+// Expose entry points for inline handlers and other scripts
 window.startGame = startGame;
 window.showShop = showShop;
+window.showOverlay = showOverlay;
 
 // Display start screen on load
 showOverlay(`
@@ -16,5 +15,11 @@ showOverlay(`
     Go to <b>SHOP</b> for pets, skins, upgrades.
   </div>
   <div class="desc">Press <b>[Space]</b> to play, or click <b>Shop</b>.</div>
-  <button class="button" onclick="showShop()">SHOP</button>
+  <button class="button" id="start-shop-btn">SHOP</button>
 `);
+
+// Guard against inline handler issues: wire the Shop button explicitly
+setTimeout(() => {
+  const btn = document.getElementById('start-shop-btn');
+  if (btn) btn.onclick = () => window.showShop();
+}, 0);

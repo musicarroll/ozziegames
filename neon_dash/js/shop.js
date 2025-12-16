@@ -1,9 +1,6 @@
-import { SKINS, UPGRADES, PETS, saveData, saveGame } from './data.js';
-import { showOverlay, startGame, setGameState } from './game.js';
-
 let shopTab = 'skins';
 
-export function showShop(tab){
+function showShop(tab){
   console.log('showShop called with tab:', tab);
   shopTab = tab || shopTab || 'skins';
   setGameState('shop');
@@ -118,7 +115,7 @@ export function showShop(tab){
   },30);
 }
 
-export function buySkin(key){
+function buySkin(key){
   const skin = SKINS.find(s=>s.key===key);
   if(!skin || saveData.money<skin.price || saveData.unlockedSkins[key]) return;
   saveData.money -= skin.price;
@@ -128,14 +125,14 @@ export function buySkin(key){
   showShop();
 }
 
-export function equipSkin(key){
+function equipSkin(key){
   if(!saveData.unlockedSkins[key]) return;
   saveData.equippedSkin = key;
   saveGame();
   showShop();
 }
 
-export function buyUpgrade(key){
+function buyUpgrade(key){
   const upg = UPGRADES.find(u=>u.key===key);
   const level = saveData.upgrades[key]||0;
   if(!upg || level>=upg.maxLevel) return;
@@ -147,7 +144,7 @@ export function buyUpgrade(key){
   showShop();
 }
 
-export function buyPet(key){
+function buyPet(key){
   const pet = PETS.find(p=>p.key===key);
   if(!pet || saveData.money<pet.price || saveData.pets[key]) return;
   saveData.money -= pet.price;
@@ -157,9 +154,12 @@ export function buyPet(key){
   showShop();
 }
 
-export function equipPet(key){
+function equipPet(key){
   if(!saveData.pets[key]) return;
   saveData.equippedPet = key;
   saveGame();
   showShop();
 }
+
+// Ensure shop controls are available for inline handlers or other scripts
+window.showShop = showShop;

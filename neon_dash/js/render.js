@@ -1,4 +1,4 @@
-export function drawNeonRect(ctx, x, y, w, h, color, glow){
+function drawNeonRect(ctx, x, y, w, h, color, glow){
   ctx.save();
   if(color === "rainbow"){
     const grad = ctx.createLinearGradient(x, y, x+w, y+h);
@@ -18,7 +18,7 @@ export function drawNeonRect(ctx, x, y, w, h, color, glow){
   ctx.restore();
 }
 
-export function drawNeonCircle(ctx, x, y, r, color, glow){
+function drawNeonCircle(ctx, x, y, r, color, glow){
   ctx.save();
   ctx.shadowColor = glow;
   ctx.shadowBlur = 20;
@@ -29,7 +29,7 @@ export function drawNeonCircle(ctx, x, y, r, color, glow){
   ctx.restore();
 }
 
-export function drawNeonText(ctx, txt, x, y, size, color, glow, align='center'){
+function drawNeonText(ctx, txt, x, y, size, color, glow, align='center'){
   ctx.save();
   ctx.font = `bold ${size}px Segoe UI, Arial, sans-serif`;
   ctx.shadowColor = glow;
